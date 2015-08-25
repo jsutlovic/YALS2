@@ -18,6 +18,7 @@ struct world {
 
 world* init_world(size_t length, size_t width);
 void destroy_world(world *w);
+void print_world(world *w);
 
 #endif
 /* vim: set ft=c : */
