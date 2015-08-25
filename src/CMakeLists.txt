@@ -1,3 +1,5 @@
-add_executable(YALS2 main.c)
+file(GLOB_RECURSE YALS2_SOURCES "*.c")
+
+add_executable(YALS2 ${YALS2_SOURCES})
 target_link_libraries(YALS2)
 install(TARGETS YALS2 RUNTIME DESTINATION ${BIN_DIR})
