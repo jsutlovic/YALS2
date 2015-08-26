@@ -2,13 +2,14 @@
 #include <stdio.h>
 #include "world.h"
 
-static const char DISPLAY_CHARS[4] = { ' ', 'o', '*', 'O' };
+static const char DISPLAY_CHARS[4] = { ' ', 'o', 'O', '*' };
 
 world* init_world(size_t length, size_t width) {
     world *w = malloc(sizeof(world));
     w->length = length;
     w->width = width;
     w->generation = 0;
+    w->state = CALC;
 
     // TODO: Check if length and width are >= sqrt(SIZE_MAX/2)
 
@@ -48,7 +49,8 @@ void iter_world(world *w, iter_world_func_type itf) {
 }
 
 void _print_world_it(world *w, size_t x, size_t y, size_t *val) {
-    putchar(DISPLAY_CHARS[*val]);
+    size_t index = w->state ? *val : (*val & ~1) | w->state;
+    putchar(DISPLAY_CHARS[index]);
     if (x == w->length-1) {
         putchar('\n');
     }

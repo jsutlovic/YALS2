@@ -7,12 +7,16 @@
 #define BITS_PER_CELL 2
 #define CELLS_PER_VAL 16
 
+enum world_state { CALC=0, SHIFT=1 };
+typedef enum world_state world_state;
+
 typedef struct world world;
 struct world {
     size_t length;
     size_t width;
     size_t data_size;
     unsigned long generation;
+    world_state state;
     uint32_t *data;
 };
 
