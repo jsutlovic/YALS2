@@ -25,13 +25,15 @@ void destroy_world(world *w) {
 
 void iter_world(world *w, iter_world_func_type itf) {
     size_t x = 0, y = 0;
-    char cell_val;
+    size_t cell_val, cell_mask;
 
     for (size_t i = 0; i < w->data_size; i++) {
         for (int j = CELLS_PER_VAL-1; j >= 0; j--) {
-            cell_val = (w->data[i] & (0x3 << j*BITS_PER_CELL)) >> j*BITS_PER_CELL;
+            cell_mask = 0x3 << j*BITS_PER_CELL;
+            cell_val = (w->data[i] & cell_mask) >> j*BITS_PER_CELL;
 
-            itf(w, x, y, cell_val);
+            itf(w, x, y, &cell_val);
+            w->data[i] = (w->data[i] & (~cell_mask)) | ((cell_val << j*BITS_PER_CELL) & cell_mask);
 
             x++;
             if (x >= w->world_length) {
@@ -45,8 +47,8 @@ void iter_world(world *w, iter_world_func_type itf) {
     }
 }
 
-void _print_world_it(world *w, size_t x, size_t y, size_t val) {
-    putchar(DISPLAY_CHARS[val]);
+void _print_world_it(world *w, size_t x, size_t y, size_t *val) {
+    putchar(DISPLAY_CHARS[*val]);
     if (x == w->world_length-1) {
         putchar('\n');
     }

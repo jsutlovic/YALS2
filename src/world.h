@@ -16,7 +16,7 @@ struct world {
     uint32_t *data;
 };
 
-typedef void (*iter_world_func_type) (world *w, size_t x, size_t y, size_t cell_val);
+typedef void (*iter_world_func_type) (world *w, size_t x, size_t y, size_t *cell_val);
 
 world* init_world(size_t length, size_t width);
 void destroy_world(world *w);
