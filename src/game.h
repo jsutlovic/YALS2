@@ -3,10 +3,23 @@
 
 #include <stdlib.h>
 #include "world.h"
+#include "rules.h"
 
-void fill1(world *w);
-void fill2(world *w);
-void fill3(world *w);
+
+/*** TYPES ***/
+
+typedef struct game game;
+struct game {
+    world *w;
+    rule_calc_func_type rule;
+};
+
+/*** FUNCTIONS ***/
+
+game* init_game(size_t length, size_t width, rule_calc_func_type rule);
+void destroy_game(game *g);
+
+void game_step(game *g);
 
 #endif
 /* vim: set ft=c : */

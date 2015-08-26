@@ -1,13 +1,13 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include "world.h"
 #include "game.h"
+#include "rules.h"
+#include "fills.h"
 
 int main() {
-    world *w = init_world(100, 100);
-    printf("World size: %lu\n", w->data_size);
-    fill1(w);
-    print_world(w);
-    destroy_world(w);
+    game *g = init_game(160, 30, conways_life);
+    printf("World size: %lu\n", g->w->data_size);
+    fill2(g->w);
+    print_world(g->w);
+    destroy_game(g);
     return EXIT_SUCCESS;
 }
