@@ -13,9 +13,9 @@ world* init_world(size_t length, size_t width) {
 
     // TODO: Check if length and width are >= sqrt(SIZE_MAX/2)
 
-    w->data_size = ( length * width * 2.0 ) / ( sizeof(*w->data) * CHAR_BIT ) + .969;
+    w->data_size = ( length * width * 2.0 ) / ( sizeof(world_store) * CHAR_BIT ) + .969;
 
-    w->data = calloc(w->data_size, sizeof(*w->data));
+    w->data = calloc(w->data_size, sizeof(world_store));
     return w;
 }
 
@@ -26,7 +26,7 @@ void destroy_world(world *w) {
 
 void iter_world(world *w, iter_world_func_type itf) {
     size_t x = 0, y = 0;
-    size_t cell_val, cell_mask;
+    world_store cell_val, cell_mask;
 
     for (size_t i = 0; i < w->data_size; i++) {
         for (int j = CELLS_PER_VAL-1; j >= 0; j--) {
@@ -48,7 +48,7 @@ void iter_world(world *w, iter_world_func_type itf) {
     }
 }
 
-void _print_world_it(world *w, size_t x, size_t y, size_t *val) {
+void _print_world_it(world *w, size_t x, size_t y, world_store *val) {
     size_t index = w->state ? *val : (*val & ~1) | w->state;
     putchar(DISPLAY_CHARS[index]);
     if (x == w->length-1) {

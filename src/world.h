@@ -7,6 +7,8 @@
 #define BITS_PER_CELL 2
 #define CELLS_PER_VAL 16
 
+typedef uint32_t world_store;
+
 enum world_state { CALC=0, SHIFT=1 };
 typedef enum world_state world_state;
 
@@ -17,10 +19,10 @@ struct world {
     size_t data_size;
     unsigned long generation;
     world_state state;
-    uint32_t *data;
+    world_store *data;
 };
 
-typedef void (*iter_world_func_type) (world *w, size_t x, size_t y, size_t *cell_val);
+typedef void (*iter_world_func_type) (world *w, size_t x, size_t y, world_store *cell_val);
 
 world* init_world(size_t length, size_t width);
 void destroy_world(world *w);
