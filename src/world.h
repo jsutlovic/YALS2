@@ -9,8 +9,8 @@
 
 typedef struct world world;
 struct world {
-    size_t world_length;
-    size_t world_width;
+    size_t length;
+    size_t width;
     size_t data_size;
     unsigned long generation;
     uint32_t *data;

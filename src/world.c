@@ -6,8 +6,8 @@ static const char DISPLAY_CHARS[4] = { ' ', 'o', '*', 'O' };
 
 world* init_world(size_t length, size_t width) {
     world *w = malloc(sizeof(world));
-    w->world_length = length;
-    w->world_width = width;
+    w->length = length;
+    w->width = width;
     w->generation = 0;
 
     // TODO: Check if length and width are >= sqrt(SIZE_MAX/2)
@@ -36,10 +36,10 @@ void iter_world(world *w, iter_world_func_type itf) {
             w->data[i] = (w->data[i] & (~cell_mask)) | ((cell_val << j*BITS_PER_CELL) & cell_mask);
 
             x++;
-            if (x >= w->world_length) {
+            if (x >= w->length) {
                 x = 0;
                 y++;
-                if (y >= w->world_width) {
+                if (y >= w->width) {
                     break;
                 }
             }
@@ -49,12 +49,12 @@ void iter_world(world *w, iter_world_func_type itf) {
 
 void _print_world_it(world *w, size_t x, size_t y, size_t *val) {
     putchar(DISPLAY_CHARS[*val]);
-    if (x == w->world_length-1) {
+    if (x == w->length-1) {
         putchar('\n');
     }
 }
 
 void print_world(world *w) {
-    printf("World %lux%lu, gen %lu:\n", w->world_length, w->world_width, w->generation);
+    printf("World %lux%lu, gen %lu:\n", w->length, w->width, w->generation);
     iter_world(w, _print_world_it);
 }
