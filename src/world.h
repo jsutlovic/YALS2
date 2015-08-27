@@ -5,7 +5,13 @@
 #include <stdlib.h>
 
 #define BITS_PER_CELL 2
-#define CELLS_PER_VAL 16
+#define CELLS_PER_ELEM 16
+#define CURR_CELL_MASK 0xaaaaaaaa
+#define BIT_COUNT_LEN 64 // 2^6
+#define SINGLE_CELL_MASK 0x3
+#define MULTI_CELL_MASK 0x3f
+
+/*** TYPES ***/
 
 typedef uint32_t world_store;
 
@@ -23,6 +29,12 @@ struct world {
 };
 
 typedef void (*iter_world_func_type) (world *w, size_t x, size_t y, world_store *cell_val);
+
+
+extern const char BIT_COUNTS[];
+
+
+/*** FUNCTIONS ***/
 
 world* init_world(size_t length, size_t width);
 void destroy_world(world *w);

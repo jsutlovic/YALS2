@@ -4,10 +4,11 @@
 #include "fills.h"
 
 int main() {
-    game *g = init_game(160, 30, conways_life);
+    game *g = init_game(10, 10, conways_life);
     printf("World size: %lu\n", g->w->data_size);
-    fill2(g->w);
+    fill1(g->w);
     print_world(g->w);
+    game_half_step(g);
     destroy_game(g);
     return EXIT_SUCCESS;
 }

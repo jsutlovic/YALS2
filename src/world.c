@@ -3,6 +3,23 @@
 #include "world.h"
 
 static const char DISPLAY_CHARS[4] = { ' ', 'o', 'O', '*' };
+/*
+ * Number of set bits in the lowest 3 'even' bit positions.
+ * Using a number masked by 0x2a as an index to this array,
+ * the value of the array at that index is the number of bits set
+ * in the number used to index.
+ * e.g. BIT_COUNTS[0x2 & 0x2a] == 1, BIT_COUNTS[0x537 & 0x2a] == 2
+ */
+const char BIT_COUNTS[BIT_COUNT_LEN] = {
+    0,   0,   1,   1,   0,   0,   1,   1,
+    1,   1,   2,   2,   1,   1,   2,   2,
+    0,   0,   1,   1,   0,   0,   1,   1,
+    1,   1,   2,   2,   1,   1,   2,   2,
+    1,   1,   2,   2,   1,   1,   2,   2,
+    2,   2,   3,   3,   2,   2,   3,   3,
+    1,   1,   2,   2,   1,   1,   2,   2,
+    2,   2,   3,   3,   2,   2,   3,   3
+};
 
 world* init_world(size_t length, size_t width) {
     world *w = malloc(sizeof(world));
@@ -29,8 +46,8 @@ void iter_world(world *w, iter_world_func_type itf) {
     world_store cell_val, cell_mask;
 
     for (size_t i = 0; i < w->data_size; i++) {
-        for (int j = CELLS_PER_VAL-1; j >= 0; j--) {
-            cell_mask = 0x3 << j*BITS_PER_CELL;
+        for (int j = CELLS_PER_ELEM-1; j >= 0; j--) {
+            cell_mask = SINGLE_CELL_MASK << j*BITS_PER_CELL;
             cell_val = (w->data[i] & cell_mask) >> j*BITS_PER_CELL;
 
             itf(w, x, y, &cell_val);
