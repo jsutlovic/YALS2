@@ -21,16 +21,16 @@ const char BIT_COUNTS[BIT_COUNT_LEN] = {
     2,   2,   3,   3,   2,   2,   3,   3
 };
 
-world* init_world(size_t length, size_t width) {
+world* init_world(size_t xlim, size_t ylim) {
     world *w = malloc(sizeof(world));
-    w->length = length;
-    w->width = width;
+    w->xlim = xlim;
+    w->ylim = ylim;
     w->generation = 0;
     w->state = CALC;
 
-    // TODO: Check if length and width are >= sqrt(SIZE_MAX/2)
+    // TODO: Check if xlim and ylim are >= sqrt(SIZE_MAX/2)
 
-    w->data_size = ( length * width * 2.0 ) / ( sizeof(world_store) * CHAR_BIT ) + .969;
+    w->data_size = ( xlim * ylim * 2.0 ) / ( sizeof(world_store) * CHAR_BIT ) + .969;
 
     w->data = calloc(w->data_size, sizeof(world_store));
     return w;
@@ -54,10 +54,10 @@ void iter_world(world *w, iter_world_func_type itf) {
             w->data[i] = (w->data[i] & (~cell_mask)) | ((cell_val << j*BITS_PER_CELL) & cell_mask);
 
             x++;
-            if (x >= w->length) {
+            if (x >= w->xlim) {
                 x = 0;
                 y++;
-                if (y >= w->width) {
+                if (y >= w->ylim) {
                     break;
                 }
             }
@@ -68,12 +68,12 @@ void iter_world(world *w, iter_world_func_type itf) {
 void _print_world_it(world *w, size_t x, size_t y, world_store *val) {
     size_t index = w->state ? *val : (*val & ~1) | w->state;
     putchar(DISPLAY_CHARS[index]);
-    if (x == w->length-1) {
+    if (x == w->xlim-1) {
         putchar('\n');
     }
 }
 
 void print_world(world *w) {
-    printf("World %lux%lu, gen %lu:\n", w->length, w->width, w->generation);
+    printf("World %lux%lu, gen %lu:\n", w->xlim, w->ylim, w->generation);
     iter_world(w, _print_world_it);
 }

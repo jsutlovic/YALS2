@@ -20,8 +20,8 @@ typedef enum world_state world_state;
 
 typedef struct world world;
 struct world {
-    size_t length;
-    size_t width;
+    size_t xlim;
+    size_t ylim;
     size_t data_size;
     unsigned long generation;
     world_state state;
@@ -36,7 +36,7 @@ extern const char BIT_COUNTS[];
 
 /*** FUNCTIONS ***/
 
-world* init_world(size_t length, size_t width);
+world* init_world(size_t xlim, size_t ylim);
 void destroy_world(world *w);
 void print_world(world *w);
 void iter_world(world *w, iter_world_func_type itf);
