@@ -33,10 +33,11 @@ void _calc_next_state(game *g) {
                 di = dd * (w->xlim / CELLS_PER_ELEM);
                 dj = dd * (w->xlim % CELLS_PER_ELEM);
                 cj = (j - dj) % CELLS_PER_ELEM;
+                ci = i + di - (j - dj) / CELLS_PER_ELEM;
                 if (cj < 0) {
                     cj += CELLS_PER_ELEM;
+                    ci += 1;
                 }
-                ci = i + di - (j - dj) / CELLS_PER_ELEM;
 
                 /* printf("| ci: %2lu, cj: %3d, ", ci, cj); */
 
