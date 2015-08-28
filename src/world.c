@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "world.h"
 
-static const char DISPLAY_CHARS[4] = { ' ', 'o', 'O', '*' };
+static const char DISPLAY_CHARS[4] = { ' ', 'o', '*', 'O' };
 /*
  * Number of set bits in the lowest 3 'even' bit positions.
  * Using a number masked by 0x2a as an index to this array,
@@ -66,7 +66,7 @@ void iter_world(world *w, iter_world_func_type itf) {
 }
 
 void _print_world_it(world *w, size_t x, size_t y, world_store *val) {
-    size_t index = w->state ? *val : (*val & ~1) | w->state;
+    size_t index = w->state ? *val : (*val & 2) | (*val >> 1);
     putchar(DISPLAY_CHARS[index]);
     if (x == w->xlim-1) {
         putchar('\n');
@@ -74,6 +74,10 @@ void _print_world_it(world *w, size_t x, size_t y, world_store *val) {
 }
 
 void print_world(world *w) {
-    printf("World %lux%lu, gen %lu:\n", w->xlim, w->ylim, w->generation);
+    printf("World %lux%lu, state: %s, gen %lu:\n",
+            w->xlim,
+            w->ylim,
+            w->state ? "SHIFT" : "CALC",
+            w->generation);
     iter_world(w, _print_world_it);
 }
