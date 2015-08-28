@@ -2,6 +2,7 @@
 #include "game.h"
 
 #define DEBUG 0
+#define DEBUG2 0
 
 game* init_game(size_t xlim, size_t ylim, rule_calc_func_type rule) {
     game *g = malloc(sizeof(game));
@@ -63,11 +64,10 @@ void _calc_next_state(game *g) {
 #endif
                     // Get last 2 cells in current element
                     // Get first cell of next element
-                    cell_count_val = w->data[ci] & cell_mask;
+                    cell_count_val = (w->data[ci] & cell_mask) << BITS_PER_CELL;
                     if (ci < w->data_size-1) {
                         int high_bits = (CELLS_PER_ELEM-1)*BITS_PER_CELL;
-                        cell_count_val =
-                            (cell_count_val << BITS_PER_CELL) |
+                        cell_count_val |=
                             ((w->data[ci+1] & (0x3 << high_bits)) >> high_bits);
                     }
                 } else {
@@ -112,6 +112,9 @@ void _calc_next_state(game *g) {
 
             x++;
             if (x >= w->xlim) {
+#if DEBUG || DEBUG2
+                putchar('\n');
+#endif
                 x = 0;
                 y++;
                 if (y >= w->ylim) {
