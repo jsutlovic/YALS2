@@ -16,6 +16,16 @@ void destroy_game(game *g) {
     free(g);
 }
 
+void _shift_next_state(game *g) {
+    world *w = g->w;
+    for (size_t i = 0; i < w->data_size; i++) {
+        w->data[i] = (w->data[i] << 1) & CURR_CELL_MASK;
+    }
+
+    w->generation++;
+    w->state = CALC;
+}
+
 void _calc_next_state(game *g) {
     size_t x = 0, y = 0;
     world *w = g->w;
@@ -129,14 +139,12 @@ void _calc_next_state(game *g) {
 
 void game_half_step(game *g) {
     switch (g->w->state) {
-        case CALC:
-            _calc_next_state(g);
-            break;
-        case SHIFT:
-            break;
+        case CALC:  _calc_next_state(g); break;
+        case SHIFT: _shift_next_state(g); break;
     }
 }
 
 void game_step(game *g) {
+    game_half_step(g);
     game_half_step(g);
 }
