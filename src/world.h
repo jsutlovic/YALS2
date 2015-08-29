@@ -8,6 +8,7 @@
 #define CELLS_PER_ELEM 16
 #define CURR_CELL_MASK 0xaaaaaaaa
 #define BIT_COUNT_LEN 64 // 2^6
+#define NEXT_STATE_MASK 0x1
 #define SINGLE_CELL_MASK 0x3
 #define MULTI_CELL_MASK 0x3f
 

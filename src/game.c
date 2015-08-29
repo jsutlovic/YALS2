@@ -110,15 +110,16 @@ void _calc_next_state(game *g) {
             putchar('\n');
 #endif
 
-            cell_mask = SINGLE_CELL_MASK << j*BITS_PER_CELL;
-            cell_val = (w->data[i] & cell_mask) >> j*BITS_PER_CELL;
-            cell_val =
-                (cell_val & 2) |
-                (g->rule(cell_val, cell_count) & 1) &
-                SINGLE_CELL_MASK;
-            w->data[i] =
-                (w->data[i] & (~cell_mask)) |
-                (cell_val << j*BITS_PER_CELL);
+            cell_mask = NEXT_STATE_MASK << j*BITS_PER_CELL;
+            switch(cell_count) {
+                case 3: cell_val = 1 << j*BITS_PER_CELL; break;
+                case 4: cell_val = (w->data[i] & cell_mask) >> 1; break;
+                default: cell_val = 0; break;
+            }
+            w->data[i] = (w->data[i] & (~cell_mask)) | cell_val;
+#if 0
+            printf("%d:%08x:%x\n", cell_count, cell_mask, cell_val);
+#endif
 
             x++;
             if (x >= w->xlim) {
