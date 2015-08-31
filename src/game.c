@@ -55,7 +55,6 @@ void _calc_next_state(game *g) {
 
                 if (cj == CELLS_PER_ELEM-1 && ci > 0) {
                     // First cell in element
-                    cell_mask = MULTI_CELL_MASK << (cj-1)*BITS_PER_CELL;
 #if DEBUG
                     putchar('1');
                     printf(" m: %08x ", cell_mask);
@@ -63,27 +62,26 @@ void _calc_next_state(game *g) {
                     // Get first 2 cells in current element
                     // Add last cell of previous element
                     cell_count_val =
-                        ((w->data[ci] & cell_mask) >> (cj-1)*BITS_PER_CELL) |
-                        ((w->data[ci-1] & 0x3) << 2*BITS_PER_CELL);
+                        ((w->data[ci] >> (cj-1)*BITS_PER_CELL) |
+                         (w->data[ci-1] << 2*BITS_PER_CELL)) &
+                        MULTI_CELL_MASK;
                 } else if (cj == 0) {
                     // Last cell in element
-                    cell_mask = MULTI_CELL_MASK >> BITS_PER_CELL;
 #if DEBUG
                     putchar('2');
                     printf(" m: %08x ", cell_mask);
 #endif
                     // Get last 2 cells in current element
                     // Get first cell of next element
-                    cell_count_val = (w->data[ci] & cell_mask) << BITS_PER_CELL;
-                    if (ci < w->data_size-1) {
-                        int high_bits = (CELLS_PER_ELEM-1)*BITS_PER_CELL;
-                        cell_count_val |=
-                            ((w->data[ci+1] & (0x3 << high_bits)) >> high_bits);
-                    }
+                    cell_count_val =
+                        ((w->data[ci] << BITS_PER_CELL) |
+                        (w->data[ci+1] >> (CELLS_PER_ELEM-1)*BITS_PER_CELL)) &
+                        MULTI_CELL_MASK;
                 } else {
                     // Get the surrounding 2 cells
-                    cell_mask = MULTI_CELL_MASK << (cj-1)*BITS_PER_CELL;
-                    cell_count_val = (w->data[ci] & cell_mask) >> (cj-1)*BITS_PER_CELL;
+                    cell_count_val =
+                        (w->data[ci] >> (cj-1)*BITS_PER_CELL) &
+                        MULTI_CELL_MASK;
 #if DEBUG
                     putchar('3');
                     printf(" m: %08x ", cell_mask);

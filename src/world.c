@@ -32,7 +32,7 @@ world* init_world(size_t xlim, size_t ylim) {
 
     w->data_size = ( xlim * ylim * 2.0 ) / ( sizeof(world_store) * CHAR_BIT ) + .969;
 
-    w->data = calloc(w->data_size, sizeof(world_store));
+    w->data = calloc(w->data_size + 1, sizeof(world_store));
     return w;
 }
 
