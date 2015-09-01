@@ -19,8 +19,5 @@ struct game {
 game* init_game(size_t xlim, size_t ylim, rule_calc_func_type rule);
 void destroy_game(game *g);
 
-void game_half_step(game *g);
-void game_step(game *g);
-
 #endif
 /* vim: set ft=c : */

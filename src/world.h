@@ -31,16 +31,15 @@ struct world {
 
 typedef void (*iter_world_func_type) (world *w, size_t x, size_t y, world_store *cell_val);
 
-
-extern const char BIT_COUNTS[];
-
-
 /*** FUNCTIONS ***/
 
 world* init_world(size_t xlim, size_t ylim);
 void destroy_world(world *w);
 void print_world(world *w);
 void iter_world(world *w, iter_world_func_type itf);
+
+void world_half_step(world *w);
+void world_step(world *w);
 
 #endif
 /* vim: set ft=c : */

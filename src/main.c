@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "game.h"
+#include "world.h"
 #include "rules.h"
 #include "fills.h"
 
@@ -7,27 +7,27 @@
 
 int main() {
 #if !PROFILE
-    game *g = init_game(10, 10, conways_life);
+    world *w = init_world(10, 10);
 #else
-    game *g = init_game(200, 200, conways_life);
+    world *w = init_world(200, 200);
 #endif
-    printf("World size: %lu\n", g->w->data_size);
-    fill1(g->w);
+    printf("World size: %lu\n", w->data_size);
+    fill1(w);
 #if !PROFILE
-    print_world(g->w);
+    print_world(w);
     for (int i = 0; i < 5; i++) {
-        game_half_step(g);
-        print_world(g->w);
-        game_half_step(g);
-        print_world(g->w);
+        world_half_step(w);
+        print_world(w);
+        world_half_step(w);
+        print_world(w);
     }
 #else
     puts("Start!");
     for (int i = 0; i < 1000; i++) {
-        game_step(g);
+        world_step(w);
     }
     puts("End!");
 #endif
-    destroy_game(g);
+    destroy_world(w);
     return EXIT_SUCCESS;
 }
