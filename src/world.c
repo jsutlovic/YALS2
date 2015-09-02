@@ -68,7 +68,7 @@ void iter_world(world *w, iter_world_func_type itf) {
     }
 }
 
-void _print_world_it(world *w, size_t x, size_t y, world_store *val) {
+static void _print_world_it(world *w, size_t x, size_t y, world_store *val) {
     size_t index = w->state ? *val : (*val & 2) | (*val >> 1);
     putchar(DISPLAY_CHARS[index]);
     if (x == w->xlim-1) {
@@ -85,7 +85,7 @@ void print_world(world *w) {
     iter_world(w, _print_world_it);
 }
 
-void _shift_next_state(world *w) {
+static void _shift_next_state(world *w) {
     for (size_t i = 0; i < w->data_size; i++) {
         w->data[i] = (w->data[i] << 1) & CURR_CELL_MASK;
     }
@@ -94,7 +94,7 @@ void _shift_next_state(world *w) {
     w->state = CALC;
 }
 
-void _calc_next_state(world *w) {
+static void _calc_next_state(world *w) {
     size_t x = 0, y = 0;
     world_store cell_val, cell_mask, cell_count_val;
     size_t ci;
