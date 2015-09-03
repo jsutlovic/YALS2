@@ -147,7 +147,7 @@ void setup_game(game *g, int win_width, int win_height) {
 }
 
 void start_game(game *g) {
-    const float triangleVertices[] = {
+    const float triangle_vertices[] = {
          0.0f,    0.5f,
          0.5f, -0.366f,
         -0.5f, -0.366f,
@@ -176,12 +176,12 @@ void start_game(game *g) {
     GLuint triangle_buffer;
     glGenBuffers(1, &triangle_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, triangle_buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+    SDL_Event e;
     int game_running = 1;
     while (game_running) {
-        SDL_Event e;
         if (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
                 game_running = 0;
