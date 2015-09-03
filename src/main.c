@@ -1,13 +1,23 @@
 #include <stdio.h>
 #include "world.h"
-#include "rules.h"
+#include "game.h"
 #include "fills.h"
 
 #define PROFILE 0
-#define GAME 0
+#define GAME 1
 
 int main() {
-#if !GAME
+#if GAME
+
+    game *g = init_game(10, 10);
+    fill1(g->w);
+    setup_game(g, 640, 480);
+
+    start_game(g);
+
+    destroy_game(g);
+
+#else // GAME OFF
 
 #if PROFILE
     world *w = init_world(200, 200);
@@ -36,7 +46,6 @@ int main() {
 
     destroy_world(w);
 
-#else // GAME ON
 #endif
     return EXIT_SUCCESS;
 }
