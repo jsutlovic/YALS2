@@ -60,7 +60,7 @@ char* get_res_path(const char *sub_dir) {
 char* join_path(char *path1, char *path2) {
     size_t path1_len = SDL_strlen(path1);
     size_t path2_len = SDL_strlen(path2);
-    size_t joined_len = path1_len + path2_len;
+    size_t joined_len = path1_len + path2_len + 1;
 
     char *joined = SDL_malloc(joined_len);
     SDL_strlcpy(joined, path1, joined_len);
