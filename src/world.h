@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#define PROGRAM_NAME "YALS2"
+
 #define BITS_PER_CELL 2
 #define CELLS_PER_ELEM 16
 #define CURR_CELL_MASK 0xaaaaaaaa

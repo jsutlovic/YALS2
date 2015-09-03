@@ -1,14 +1,207 @@
-#include <stdio.h>
 #include "game.h"
 
-game* init_game(size_t xlim, size_t ylim, rule_calc_func_type rule) {
+#define MULTISAMPLE 1
+
+static void _sdl_init(game *g, int win_width, int win_height) {
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        puts("Failed to initialize SDL");
+        exit(EXIT_FAILURE);
+    }
+
+    g->win = SDL_CreateWindow(PROGRAM_NAME,
+        SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED,
+        win_width,
+        win_height,
+        SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL
+    );
+
+    g->gl_ctx = SDL_GL_CreateContext(g->win);
+    if (g->gl_ctx == NULL) {
+        puts("Could not create an OpenGL context");
+        exit(EXIT_FAILURE);
+    }
+
+    const unsigned char *gl_version = glGetString(GL_VERSION);
+
+    if (gl_version == NULL) {
+        puts("Could not determine OpenGL version");
+        exit(EXIT_FAILURE);
+    }
+
+    SDL_GL_MakeCurrent(g->win, g->gl_ctx);
+
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+#if MULTISAMPLE
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+
+    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+    glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+
+    glDisable(GL_MULTISAMPLE);
+    glEnable(GL_POLYGON_SMOOTH);
+    glEnable(GL_LINE_SMOOTH);
+#endif
+
+    glewExperimental = GL_TRUE;
+    GLenum err = glewInit();
+    if (err != GLEW_OK) {
+        puts("Error initializing GLEW");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static GLuint _create_shader(GLenum shader_type, const char *shader_file) {
+    GLuint shader_id = glCreateShader(shader_type);
+    char *shader_source = read_file(shader_file);
+
+    glShaderSource(shader_id, 1, (const GLchar**) &shader_source, NULL);
+
+    glCompileShader(shader_id);
+
+    GLint status;
+    glGetShaderiv(shader_id, GL_COMPILE_STATUS, &status);
+
+    if (status == GL_FALSE) {
+        puts("FAILED TO COMPILE SHADER:");
+        puts(shader_source);
+        return -1;
+    } else {
+        puts("Shader compiled!");
+    }
+
+    free(shader_source);
+
+    return shader_id;
+}
+
+static GLuint _shader_init(const char *vs_path, const char *fs_path) {
+    GLuint vertex_shader, fragment_shader;
+
+    vertex_shader = _create_shader(GL_VERTEX_SHADER, vs_path);
+    fragment_shader = _create_shader(GL_FRAGMENT_SHADER, fs_path);
+
+    GLuint shader_program = glCreateProgram();
+
+    glAttachShader(shader_program, vertex_shader);
+    glAttachShader(shader_program, fragment_shader);
+
+    glLinkProgram(shader_program);
+
+    GLint status;
+    glGetProgramiv(shader_program, GL_LINK_STATUS, &status);
+
+    if (status == GL_FALSE) {
+        puts("Shader linker failure!");
+        return -1;
+    } else {
+        puts("Shaders linked");
+    }
+
+    glDetachShader(shader_program, vertex_shader);
+    glDetachShader(shader_program, fragment_shader);
+
+    return shader_program;
+}
+
+static void _destroy_gfx(game *g) {
+    SDL_GL_DeleteContext(g->gl_ctx);
+    SDL_DestroyWindow(g->win);
+    SDL_Quit();
+}
+
+static void _init_gfx(game *g, int win_width, int win_height) {
+    _sdl_init(g, win_width, win_height);
+
+    char *res_path = get_res_path(""),
+         *vs_path = join_path(res_path, "vs1.glsl"),
+         *fs_path = join_path(res_path, "fs1.glsl");
+
+    g->gl_shader = _shader_init(vs_path, fs_path);
+
+    free(vs_path);
+    free(fs_path);
+    free(res_path);
+
+    if (g->gl_shader == -1) {
+        puts("ACK");
+        _destroy_gfx(g);
+        exit(EXIT_FAILURE);
+    }
+}
+
+game* init_game(size_t xlim, size_t ylim) {
     game *g = malloc(sizeof(game));
-    g->rule = rule;
     g->w = init_world(xlim, ylim);
     return g;
 }
 
+void setup_game(game *g, int win_width, int win_height) {
+    _init_gfx(g, win_width, win_height);
+}
+
+void start_game(game *g) {
+    const float triangleVertices[] = {
+         0.0f,    0.5f,
+         0.5f, -0.366f,
+        -0.5f, -0.366f,
+
+        0.0f, 0.0f, 0.0f, 1.0f,
+        0.0f, 0.0f, 0.0f, 1.0f,
+        0.0f, 0.0f, 0.0f, 1.0f,
+    };
+
+    int ww, wh;
+    SDL_GetWindowSize(g->win, &ww, &wh);
+
+    mat4x4 MVP;
+    float aspect = (float) ww / (float) wh,
+          size = 1;
+
+    mat4x4_ortho(MVP, -(aspect * size), aspect * size, -size, size, 0, 100);
+
+    GLuint matrix_id = glGetUniformLocation(g->gl_shader, "MVP");
+
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+
+    GLuint triangle_buffer;
+    glGenBuffers(1, &triangle_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, triangle_buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    int game_running = 1;
+    while (game_running) {
+        SDL_Event e;
+        if (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) {
+                game_running = 0;
+            }
+            if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_ESCAPE) {
+                game_running = 0;
+            }
+        }
+
+        glClearColor(1.0, 1.0, 1.0, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        SDL_GL_SwapWindow(g->win);
+        SDL_Delay(0);
+    }
+}
+
 void destroy_game(game *g) {
+    _destroy_gfx(g);
+    free_data_path();
     destroy_world(g->w);
     free(g);
 }
