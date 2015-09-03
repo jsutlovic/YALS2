@@ -151,10 +151,15 @@ void start_game(game *g) {
          0.0f,    0.5f,
          0.5f, -0.366f,
         -0.5f, -0.366f,
+    };
 
-        0.0f, 0.0f, 0.0f, 1.0f,
-        0.0f, 0.0f, 0.0f, 1.0f,
-        0.0f, 0.0f, 0.0f, 1.0f,
+    float triangle_colours[] = {
+        1.0f, 0.0f, 0.0f, 0.9f,
+        0.0f, 1.0f, 0.0f, 0.9f,
+        0.0f, 0.0f, 1.0f, 0.9f,
+        1.0f, 0.0f, 0.0f, 0.9f,
+        0.0f, 1.0f, 0.0f, 0.9f,
+        0.0f, 0.0f, 1.0f, 0.9f,
     };
 
     int ww, wh;
@@ -167,6 +172,7 @@ void start_game(game *g) {
     mat4x4_ortho(MVP, -(aspect * size), aspect * size, -size, size, 0, 100);
 
     GLuint matrix_id = glGetUniformLocation(g->gl_shader, "MVP");
+    GLuint colors_id = glGetUniformLocation(g->gl_shader, "colors");
 
     GLuint vao;
     glGenVertexArrays(1, &vao);
@@ -180,6 +186,7 @@ void start_game(game *g) {
 
     SDL_Event e;
     int game_running = 1;
+    unsigned int count = 0, col = 0;
     while (game_running) {
         if (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
@@ -190,17 +197,19 @@ void start_game(game *g) {
             }
         }
 
-        glClearColor(1.0, 1.0, 1.0, 1.0);
+        glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(g->gl_shader);
 
         glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &MVP[0][0]);
+
+        glUniform4fv(colors_id, 3, &triangle_colours[col*4]);
+
         glBindBuffer(GL_ARRAY_BUFFER, triangle_buffer);
         glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)(24*1));
+
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
         glDisableVertexAttribArray(0);
@@ -210,6 +219,13 @@ void start_game(game *g) {
 
         SDL_GL_SwapWindow(g->win);
         SDL_Delay(20);
+        ++count;
+        if (count % 10 == 0) {
+            ++col;
+            if (col > 2) {
+                col = 0;
+            }
+        }
     }
 }
 
