@@ -71,6 +71,14 @@ static GLuint _create_shader(GLenum shader_type, const char *shader_file) {
     if (status == GL_FALSE) {
         puts("FAILED TO COMPILE SHADER:");
         puts(shader_source);
+
+        GLint infoLogLength;
+        glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH, &infoLogLength);
+
+        GLchar strInfoLog[4096];
+        glGetShaderInfoLog(shader_id, infoLogLength, NULL, strInfoLog);
+
+        printf("\nGLSL error: %s", strInfoLog);
         return -1;
     } else {
         puts("Shader compiled!");
