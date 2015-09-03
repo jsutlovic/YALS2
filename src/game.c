@@ -172,7 +172,6 @@ void start_game(game *g) {
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-
     GLuint triangle_buffer;
     glGenBuffers(1, &triangle_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, triangle_buffer);
@@ -194,8 +193,23 @@ void start_game(game *g) {
         glClearColor(1.0, 1.0, 1.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        glUseProgram(g->gl_shader);
+
+        glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &MVP[0][0]);
+        glBindBuffer(GL_ARRAY_BUFFER, triangle_buffer);
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)(24*1));
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        glDisableVertexAttribArray(0);
+        glDisableVertexAttribArray(1);
+
+        glUseProgram(0);
+
         SDL_GL_SwapWindow(g->win);
-        SDL_Delay(0);
+        SDL_Delay(20);
     }
 }
 
