@@ -2,6 +2,7 @@
 
 #define VERTS_PER_TRIANGLE 6
 #define MULTISAMPLE 1
+#define ORTHO 0
 
 static void _sdl_init(game *g, int win_width, int win_height) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -228,9 +229,23 @@ void start_game(game *g) {
 
     mat4x4 MVP;
     float aspect = (float) ww / (float) wh,
-          size = 1;
+          size = 1.0;
 
+#if ORTHO
     mat4x4_ortho(MVP, -(aspect * size), aspect * size, -size, size, 0, 100);
+#else
+    mat4x4 Projection, View, Model, temp;
+
+    vec3 eye    = {0.0, 0.0, 1.8},
+         center = {0, 0, 0},
+         up     = {0, 1, 0};
+
+    mat4x4_perspective(Projection, 45.0f, aspect, 0.1f, 100.0f);
+    mat4x4_look_at(View, eye, center, up);
+    mat4x4_identity(Model);
+    mat4x4_mul(temp, Projection, View);
+    mat4x4_mul(MVP, temp, Model);
+#endif
 
     GLuint matrix_id = glGetUniformLocation(g->gl_shader, "MVP");
     GLuint colors_id = glGetUniformLocation(g->gl_shader, "colors");
