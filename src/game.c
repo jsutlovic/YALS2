@@ -154,20 +154,31 @@ void setup_game(game *g, int win_width, int win_height) {
     _init_gfx(g, win_width, win_height);
 }
 
+static GLsizei _world_vertices(world *w, GLfloat **v) {
+    // Triangle has 6 points, each a float
+    GLsizei vcount = 1 * 6;
+    *v = SDL_malloc(vcount * sizeof(GLfloat));
+
+    (*v)[0] = 0.0;
+    (*v)[1] = 0.5;
+
+    (*v)[2] =  0.5;
+    (*v)[3] = -0.366;
+
+    (*v)[4] = -0.5;
+    (*v)[5] = -0.366;
+
+    return vcount;
+}
+
 void start_game(game *g) {
-    const float triangle_vertices[] = {
-         0.0f,    0.5f,
-         0.5f, -0.366f,
-        -0.5f, -0.366f,
-    };
+    GLfloat *world_vertices;
+    GLsizei world_vertices_count = _world_vertices(g->w, &world_vertices);
 
     float triangle_colours[] = {
-        1.0f, 0.0f, 0.0f, 0.9f,
-        0.0f, 1.0f, 0.0f, 0.9f,
-        0.0f, 0.0f, 1.0f, 0.9f,
-        1.0f, 0.0f, 0.0f, 0.9f,
-        0.0f, 1.0f, 0.0f, 0.9f,
-        0.0f, 0.0f, 1.0f, 0.9f,
+        1.0f, 0.0f, 0.0f, 0.6f,
+        0.0f, 1.0f, 0.0f, 0.6f,
+        0.0f, 0.0f, 1.0f, 0.6f,
     };
 
     int ww, wh;
@@ -189,7 +200,7 @@ void start_game(game *g) {
     GLuint triangle_buffer;
     glGenBuffers(1, &triangle_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, triangle_buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, world_vertices_count*sizeof(GLfloat), world_vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     SDL_Event e;
@@ -218,7 +229,7 @@ void start_game(game *g) {
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_TRIANGLES, 0, world_vertices_count / 2);
 
         glDisableVertexAttribArray(0);
         glDisableVertexAttribArray(1);
