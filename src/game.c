@@ -33,6 +33,8 @@ static void _sdl_init(game *g, int win_width, int win_height) {
 
     SDL_GL_MakeCurrent(g->win, g->gl_ctx);
 
+    SDL_GL_SetSwapInterval(0);
+
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 
@@ -260,6 +262,8 @@ void start_game(game *g) {
     glBufferData(GL_ARRAY_BUFFER, world_vertices_count*sizeof(GLfloat), world_vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+    Uint32 start_loop = SDL_GetTicks();
+
     SDL_Event e;
     int game_running = 1;
     unsigned int count = 0, col = 0;
@@ -294,7 +298,8 @@ void start_game(game *g) {
         glUseProgram(0);
 
         SDL_GL_SwapWindow(g->win);
-        SDL_Delay(20);
+        /* SDL_Delay(20); */
+        world_step(g->w);
 #if 0
         ++count;
         if (count % 10 == 0) {
@@ -305,6 +310,9 @@ void start_game(game *g) {
         }
 #endif
     }
+    Uint32 end_loop = SDL_GetTicks();
+    float total = (end_loop - start_loop) / 1000.0;
+    printf("World generations: %lu in %.4f seconds, %.4f gen/s\n", g->w->generation, total, g->w->generation / total);
 }
 
 void destroy_game(game *g) {

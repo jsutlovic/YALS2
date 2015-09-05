@@ -11,7 +11,7 @@ int main() {
 
     game *g = init_game(10, 10);
     fill1(g->w);
-    setup_game(g, 640, 480);
+    setup_game(g, 1280, 720);
 
     start_game(g);
 
