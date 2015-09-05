@@ -18,6 +18,10 @@ static void _sdl_init(game *g, int win_width, int win_height) {
         SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL
     );
 
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+
     g->gl_ctx = SDL_GL_CreateContext(g->win);
     if (g->gl_ctx == NULL) {
         puts("Could not create an OpenGL context");
@@ -25,6 +29,7 @@ static void _sdl_init(game *g, int win_width, int win_height) {
     }
 
     const unsigned char *gl_version = glGetString(GL_VERSION);
+    printf("OpenGL version: %s\n", gl_version);
 
     if (gl_version == NULL) {
         puts("Could not determine OpenGL version");
@@ -34,9 +39,6 @@ static void _sdl_init(game *g, int win_width, int win_height) {
     SDL_GL_MakeCurrent(g->win, g->gl_ctx);
 
     SDL_GL_SetSwapInterval(0);
-
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
