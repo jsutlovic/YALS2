@@ -268,7 +268,7 @@ void start_game(game *g) {
 
     SDL_Event e;
     int game_running = 1;
-    unsigned int count = 0, col = 0;
+    size_t count = 0, col = 0;
     while (game_running) {
         if (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
@@ -302,8 +302,8 @@ void start_game(game *g) {
         SDL_GL_SwapWindow(g->win);
         /* SDL_Delay(20); */
         world_step(g->w);
-#if 0
         ++count;
+#if 0
         if (count % 10 == 0) {
             ++col;
             if (col > 2) {
@@ -314,7 +314,7 @@ void start_game(game *g) {
     }
     Uint32 end_loop = SDL_GetTicks();
     float total = (end_loop - start_loop) / 1000.0;
-    printf("World generations: %lu in %.4f seconds, %.4f gen/s\n", g->w->generation, total, g->w->generation / total);
+    printf("World generations: %lu in %.4f seconds, %.4f gen/s\n", count, total, count / total);
 }
 
 void destroy_game(game *g) {
