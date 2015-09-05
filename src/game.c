@@ -3,6 +3,7 @@
 #define VERTS_PER_TRIANGLE 6
 #define MULTISAMPLE 1
 #define ORTHO 0
+#define PADDING 1
 
 static void _sdl_init(game *g, int win_width, int win_height) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -172,12 +173,18 @@ static GLsizei _world_vertices(world *w, GLfloat **v) {
     ratio = 1.0 / 0.2;
 
     size_t count = w->xlim > w->ylim ? w->xlim : w->ylim;
+
+#if PADDING
     // Calculate cell size:
     // 2 is the size of the screen (-1 to 1)
     // csize is the solution to the equation: (count)x + (count + 1)(x * 0.2)
     csize = (2 * ratio) / (ratio * count + (count + 1));
     // psize is 20% of csize
     psize = csize / ratio;
+#else
+    csize = 2.0 / count;
+    psize = 0;
+#endif
 
     size_t idx_base = 0;
     GLfloat top = 1.0 - psize,
@@ -243,7 +250,7 @@ void start_game(game *g) {
 
     vec3 eye    = {0.0, 0.0, 1.8},
          center = {0, 0, 0},
-         up     = {0, 1, 0};
+         up     = {0.0, 1.0, 0};
 
     mat4x4_perspective(Projection, 45.0f, aspect, 0.1f, 100.0f);
     mat4x4_look_at(View, eye, center, up);
