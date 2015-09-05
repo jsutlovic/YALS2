@@ -223,9 +223,10 @@ void start_game(game *g) {
     GLsizei world_vertices_count = _world_vertices(g->w, &world_vertices);
 
     float triangle_colours[] = {
-        0.0f, 0.0f, 1.0f, 0.6f,
-        0.0f, 1.0f, 0.0f, 0.6f,
-        1.0f, 0.0f, 0.0f, 0.6f,
+        0.0f, 0.0f, 1.0f, 1.0f,
+        0.0f, 1.0f, 0.0f, 1.0f,
+        1.0f, 0.0f, 0.0f, 1.0f,
+        1.0f, 1.0f, 0.0f, 1.0f,
     };
 
     int ww, wh;
@@ -286,7 +287,7 @@ void start_game(game *g) {
 
         glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &MVP[0][0]);
 
-        glUniform4fv(colors_id, 3, &triangle_colours[col*4]);
+        glUniform4fv(colors_id, 3, triangle_colours);
 
         glBindBuffer(GL_ARRAY_BUFFER, triangle_buffer);
         glEnableVertexAttribArray(0);

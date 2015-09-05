@@ -5,5 +5,5 @@ out vec4 output_color;
 
 void main()
 {
-	output_color = vert_color;
+    output_color = vert_color;
 }

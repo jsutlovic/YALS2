@@ -9,7 +9,7 @@
 int main() {
 #if GAME
 
-    game *g = init_game(10, 10);
+    game *g = init_game(200, 200);
     fill1(g->w);
     setup_game(g, 1280, 720);
 
