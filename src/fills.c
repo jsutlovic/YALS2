@@ -47,3 +47,19 @@ static void _fill5(world *w, size_t x, size_t y, world_store *cell_val) {
 void fill5(world *w) {
     iter_world(w, _fill5);
 }
+
+static void _fill6(world *w, size_t x, size_t y, world_store *cell_val) {
+    *cell_val = (y & 1) << 1;
+}
+
+void fill6(world *w) {
+    iter_world(w, _fill6);
+}
+
+static void _fill7(world *w, size_t x, size_t y, world_store *cell_val) {
+    *cell_val = ((y+1) & 1) << 1;
+}
+
+void fill7(world *w) {
+    iter_world(w, _fill7);
+}
