@@ -9,11 +9,9 @@
 int main() {
 #if GAME
 
-    game *g = init_game(201, 201);
-    fill1(g->w);
+    game *g = init_game(240, 240);
+    fill2(g->w);
     setup_game(g, 1280, 720);
-
-    print_world(g->w);
 
     start_game(g);
 

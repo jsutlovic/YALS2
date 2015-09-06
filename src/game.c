@@ -238,10 +238,12 @@ void start_game(game *g) {
     GLsizei world_vertices_count = _world_vertices(g->w, &world_vertices);
 
     float triangle_colours[] = {
-        0.0f, 0.0f, 1.0f, 1.0f,
-        0.0f, 1.0f, 0.0f, 1.0f,
-        1.0f, 0.0f, 0.0f, 1.0f,
-        1.0f, 1.0f, 0.0f, 1.0f,
+        0.01568, 0.01568, 0.01568, 1.0,  // Background
+        0.03137, 0.03137, 0.03137, 1.0,  // Dead
+        1.00000, 1.00000, 1.00000, 1.0,  // Born
+        0.26666, 0.26666, 0.26666, 1.0,  // Dying
+        0.00000, 0.73333, 0.00000, 1.0,  // (Still) Alive
+        0.00000, 0.73333, 0.00000, 1.0,  // (Still) Alive
     };
 
     int ww, wh;
@@ -271,6 +273,7 @@ void start_game(game *g) {
 
     GLuint matrix_id = glGetUniformLocation(g->gl_shader, "MVP");
     GLuint colors_id = glGetUniformLocation(g->gl_shader, "colors");
+    GLuint inv_state_id = glGetUniformLocation(g->gl_shader, "inv_state");
     GLuint world_texture_buffer = glGetUniformLocation(g->gl_shader, "world_texture_buffer");
 
     // Vertex arrays
@@ -296,30 +299,28 @@ void start_game(game *g) {
     GLuint world_texture;
     glGenTextures(1, &world_texture);
 
+    glUseProgram(g->gl_shader);
+    glUniform4fv(colors_id, 5, &triangle_colours[4]);
+    glUseProgram(0);
+
 
     Uint32 start_loop = SDL_GetTicks();
-    glClearColor(0.6, 0.6, 0.6, 1.0);
+    glClearColor(
+            triangle_colours[0],
+            triangle_colours[1],
+            triangle_colours[2],
+            triangle_colours[3]);
 
     SDL_Event e;
     int game_running = 1;
     size_t count = 0, col = 0;
     while (game_running) {
-        if (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) {
-                game_running = 0;
-            }
-            if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_ESCAPE) {
-                game_running = 0;
-            }
-        }
-
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(g->gl_shader);
 
         glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &MVP[0][0]);
-        glUniform4fv(colors_id, 4, triangle_colours);
-
+        glUniform1ui(inv_state_id, !g->w->state);
 
         glBindBuffer(GL_ARRAY_BUFFER, triangle_buffer);
         glEnableVertexAttribArray(0);
@@ -340,11 +341,25 @@ void start_game(game *g) {
         SDL_GL_SwapWindow(g->win);
 
         /* print_world(g->w); */
-        /* SDL_Delay(50); */
+        SDL_Delay(100);
+        /* SDL_Delay(750); */
+
+        if (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) {
+                game_running = 0;
+            }
+            if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_ESCAPE) {
+                game_running = 0;
+            }
+            if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_n) {
+                world_half_step(g->w);
+            }
+        }
 
         // Update the world
         ++count;
         world_step(g->w);
+        /* world_half_step(g->w); */
 
         glBindBuffer(GL_TEXTURE_BUFFER, world_data_buffer);
 #if 0  // Method 1: ~840 f/s @ 40k cells

@@ -3,8 +3,9 @@
 layout(location = 0) in vec2 position;
 
 uniform usamplerBuffer world_texture_buffer;
-uniform vec4 colors[4];
+uniform vec4 colors[5];
 uniform mat4 MVP;
+uniform uint inv_state;
 out vec4 vert_color;
 int cell_id, shift, data_offset;
 int cell_val;
@@ -16,5 +17,5 @@ void main()
     data_offset = cell_id / 16;
     shift = 15 - (cell_id % 16);
     cell_val = int(texelFetch(world_texture_buffer, data_offset).r >> (shift*2)) & 3;
-    vert_color = colors[cell_val];
+    vert_color = colors[cell_val << inv_state];
 }
