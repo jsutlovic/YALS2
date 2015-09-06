@@ -13,6 +13,8 @@ int main() {
     fill1(g->w);
     setup_game(g, 1280, 720);
 
+    print_world(g->w);
+
     start_game(g);
 
     destroy_game(g);

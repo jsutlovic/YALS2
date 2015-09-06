@@ -114,6 +114,14 @@ static GLuint _shader_init(const char *vs_path, const char *fs_path) {
 
     if (status == GL_FALSE) {
         puts("Shader linker failure!");
+
+        GLint infoLogLength;
+        glGetProgramiv(shader_program, GL_INFO_LOG_LENGTH, &infoLogLength);
+
+        GLchar strInfoLog[infoLogLength];
+        glGetProgramInfoLog(shader_program, infoLogLength, NULL, strInfoLog);
+
+        printf("\nGLSL error: %s", strInfoLog);
         return -1;
     } else {
         puts("Shaders linked");
@@ -262,10 +270,12 @@ void start_game(game *g) {
     GLuint matrix_id = glGetUniformLocation(g->gl_shader, "MVP");
     GLuint colors_id = glGetUniformLocation(g->gl_shader, "colors");
 
+    // Vertex arrays
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
+    // World vertices
     GLuint triangle_buffer;
     glGenBuffers(1, &triangle_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, triangle_buffer);
@@ -287,14 +297,14 @@ void start_game(game *g) {
             }
         }
 
-        glClearColor(0.0, 0.0, 0.0, 1.0);
+        glClearColor(0.6, 0.6, 0.6, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(g->gl_shader);
 
         glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &MVP[0][0]);
+        glUniform4fv(colors_id, 4, triangle_colours);
 
-        glUniform4fv(colors_id, 3, triangle_colours);
 
         glBindBuffer(GL_ARRAY_BUFFER, triangle_buffer);
         glEnableVertexAttribArray(0);
