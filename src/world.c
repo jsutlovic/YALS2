@@ -178,7 +178,7 @@ static void _calc_next_state(world *w) {
             cell_mask = NEXT_STATE_MASK << j*BITS_PER_CELL;
             switch(cell_count) {
                 case 3: cell_val = 1 << j*BITS_PER_CELL; break;
-                case 4: cell_val = (w->data[i] & cell_mask) >> 1; break;
+                case 4: cell_val = (w->data[i] >> 1) & cell_mask; break;
                 default: cell_val = 0; break;
             }
             w->data[i] = (w->data[i] & (~cell_mask)) | cell_val;
