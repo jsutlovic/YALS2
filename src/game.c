@@ -289,7 +289,7 @@ void start_game(game *g) {
     GLuint world_data_buffer;
     glGenBuffers(1, &world_data_buffer);
     glBindBuffer(GL_TEXTURE_BUFFER, world_data_buffer);
-    glBufferData(GL_TEXTURE_BUFFER, g->w->data_size*sizeof(world_store), g->w->data, GL_STATIC_DRAW);
+    glBufferData(GL_TEXTURE_BUFFER, g->w->data_size*sizeof(world_store), g->w->data, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_TEXTURE_BUFFER, 0);
 
     // World texture
@@ -298,6 +298,7 @@ void start_game(game *g) {
 
 
     Uint32 start_loop = SDL_GetTicks();
+    glClearColor(0.6, 0.6, 0.6, 1.0);
 
     SDL_Event e;
     int game_running = 1;
@@ -312,7 +313,6 @@ void start_game(game *g) {
             }
         }
 
-        glClearColor(0.6, 0.6, 0.6, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(g->gl_shader);
@@ -338,17 +338,23 @@ void start_game(game *g) {
         glUseProgram(0);
 
         SDL_GL_SwapWindow(g->win);
-        /* SDL_Delay(20); */
-        world_step(g->w);
+
+        /* print_world(g->w); */
+        /* SDL_Delay(50); */
+
+        // Update the world
         ++count;
-#if 0
-        if (count % 10 == 0) {
-            ++col;
-            if (col > 2) {
-                col = 0;
-            }
-        }
+        world_step(g->w);
+
+        glBindBuffer(GL_TEXTURE_BUFFER, world_data_buffer);
+#if 0  // Method 1: ~840 f/s @ 40k cells
+        glBufferData(GL_TEXTURE_BUFFER, g->w->data_size*sizeof(world_store), NULL, GL_DYNAMIC_DRAW);
+        glBufferData(GL_TEXTURE_BUFFER, g->w->data_size*sizeof(world_store), g->w->data, GL_DYNAMIC_DRAW);
 #endif
+#if 1   // Method 2: ~850 f/s @ 40k cells
+        glBufferSubData(GL_TEXTURE_BUFFER, 0, g->w->data_size*sizeof(world_store), g->w->data);
+#endif
+        glBindBuffer(GL_TEXTURE_BUFFER, 0);
     }
     Uint32 end_loop = SDL_GetTicks();
     float total = (end_loop - start_loop) / 1000.0;
