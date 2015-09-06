@@ -4,6 +4,7 @@
 #define MULTISAMPLE 1
 #define ORTHO 0
 #define PADDING 1
+#define VSYNC 1
 
 static void _sdl_init(game *g, int win_width, int win_height) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -39,7 +40,7 @@ static void _sdl_init(game *g, int win_width, int win_height) {
 
     SDL_GL_MakeCurrent(g->win, g->gl_ctx);
 
-    SDL_GL_SetSwapInterval(0);
+    SDL_GL_SetSwapInterval(VSYNC);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -340,10 +341,7 @@ void start_game(game *g) {
 
         SDL_GL_SwapWindow(g->win);
 
-        /* print_world(g->w); */
-        SDL_Delay(100);
-        /* SDL_Delay(750); */
-
+        // Events
         if (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
                 game_running = 0;
@@ -358,17 +356,10 @@ void start_game(game *g) {
 
         // Update the world
         ++count;
-        world_step(g->w);
-        /* world_half_step(g->w); */
+        world_half_step(g->w);
 
         glBindBuffer(GL_TEXTURE_BUFFER, world_data_buffer);
-#if 0  // Method 1: ~840 f/s @ 40k cells
-        glBufferData(GL_TEXTURE_BUFFER, g->w->data_size*sizeof(world_store), NULL, GL_DYNAMIC_DRAW);
-        glBufferData(GL_TEXTURE_BUFFER, g->w->data_size*sizeof(world_store), g->w->data, GL_DYNAMIC_DRAW);
-#endif
-#if 1   // Method 2: ~850 f/s @ 40k cells
         glBufferSubData(GL_TEXTURE_BUFFER, 0, g->w->data_size*sizeof(world_store), g->w->data);
-#endif
         glBindBuffer(GL_TEXTURE_BUFFER, 0);
     }
     Uint32 end_loop = SDL_GetTicks();
