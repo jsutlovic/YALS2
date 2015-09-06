@@ -267,8 +267,11 @@ void start_game(game *g) {
     mat4x4_mul(MVP, temp, Model);
 #endif
 
+    int world_texture_id = 0;
+
     GLuint matrix_id = glGetUniformLocation(g->gl_shader, "MVP");
     GLuint colors_id = glGetUniformLocation(g->gl_shader, "colors");
+    GLuint world_texture_buffer = glGetUniformLocation(g->gl_shader, "world_texture_buffer");
 
     // Vertex arrays
     GLuint vao;
@@ -281,6 +284,18 @@ void start_game(game *g) {
     glBindBuffer(GL_ARRAY_BUFFER, triangle_buffer);
     glBufferData(GL_ARRAY_BUFFER, world_vertices_count*sizeof(GLfloat), world_vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // World data buffer (texture buffer object)
+    GLuint world_data_buffer;
+    glGenBuffers(1, &world_data_buffer);
+    glBindBuffer(GL_TEXTURE_BUFFER, world_data_buffer);
+    glBufferData(GL_TEXTURE_BUFFER, g->w->data_size*sizeof(world_store), g->w->data, GL_STATIC_DRAW);
+    glBindBuffer(GL_TEXTURE_BUFFER, 0);
+
+    // World texture
+    GLuint world_texture;
+    glGenTextures(1, &world_texture);
+
 
     Uint32 start_loop = SDL_GetTicks();
 
@@ -309,6 +324,11 @@ void start_game(game *g) {
         glBindBuffer(GL_ARRAY_BUFFER, triangle_buffer);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+        glActiveTexture(GL_TEXTURE0 + world_texture_id);
+        glBindTexture(GL_TEXTURE_BUFFER, world_texture);
+        glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, world_data_buffer);
+        glUniform1i(world_texture_buffer, world_texture_id);
 
         glDrawArrays(GL_TRIANGLES, 0, world_vertices_count / 2);
 
