@@ -170,38 +170,50 @@ void setup_game(game *g, int win_width, int win_height) {
     _init_gfx(g, win_width, win_height);
 }
 
-static GLsizei _world_vertices(world *w, GLfloat **v) {
+static GLsizei _world_vertices(world *w, GLfloat aspect, GLfloat **v) {
     // Triangle has 6 points, each a float
     // Each cell has 2 triangles to make a square
     GLsizei vcount = 2 * VERTS_PER_TRIANGLE * w->xlim * w->ylim;
     *v = SDL_malloc(vcount * sizeof(GLfloat));
 
-    GLfloat orig_x, orig_y, ratio, csize, psize;
+    GLfloat ratio, csize, psize;
 
     // Ratio of cell size to padding: 20% (divisor)
     ratio = 1.0 / 0.2;
 
-    size_t count = w->xlim > w->ylim ? w->xlim : w->ylim;
+    size_t count;
+    float total_size, world_aspect;
+    world_aspect = (float) w->xlim / (float) w->ylim;
+    if (world_aspect >= aspect) {
+        count = w->xlim;
+        total_size = 2 * aspect;
+    } else if (world_aspect <= 1.0) {
+        count = w->ylim;
+        total_size = 2.0;
+    } else {
+        count = w->xlim > w->ylim ? w->xlim : w->ylim;
+        total_size = 2.0 * world_aspect;
+    }
 
 #if PADDING
     // Calculate cell size:
     // 2 is the size of the screen (-1 to 1)
     // csize is the solution to the equation: (count)x + (count + 1)(x * 0.2)
-    csize = (2 * ratio) / (ratio * count + (count + 1));
+    csize = (total_size * ratio) / (ratio * count + (count + 1));
     // psize is 20% of csize
     psize = csize / ratio;
 #else
-    csize = 2.0 / count;
+    csize = total_size / count;
     psize = 0;
 #endif
 
     size_t idx_base = 0;
     GLfloat top = 1.0 - psize,
-            left = -1.0 + psize;
+            left = -(total_size/2.0) + psize;
 
-    for (int y = 0; y < w->ylim; ++y) {
+    for (size_t y = 0; y < w->ylim; ++y) {
         GLfloat bottom = top - csize;
-        for (int x = 0; x < w->xlim; ++x) {
+        for (size_t x = 0; x < w->xlim; ++x) {
             GLfloat right = left + csize;
 
 #if DEBUG
@@ -225,7 +237,7 @@ static GLsizei _world_vertices(world *w, GLfloat **v) {
         }
 
         top -= csize + psize;
-        left = -1.0 + psize;
+        left = -(total_size/2.0) + psize;
 #if DEBUG
         putchar('\n');
 #endif
@@ -235,8 +247,13 @@ static GLsizei _world_vertices(world *w, GLfloat **v) {
 }
 
 void start_game(game *g) {
+    int ww, wh;
+    SDL_GetWindowSize(g->win, &ww, &wh);
+
+    float aspect = (float) ww / (float) wh;
+
     GLfloat *world_vertices;
-    GLsizei world_vertices_count = _world_vertices(g->w, &world_vertices);
+    GLsizei world_vertices_count = _world_vertices(g->w, aspect, &world_vertices);
 
     float triangle_colours[] = {
         0.01568, 0.01568, 0.01568, 1.0,  // Background
@@ -247,14 +264,10 @@ void start_game(game *g) {
         0.00000, 0.73333, 0.00000, 1.0,  // (Still) Alive
     };
 
-    int ww, wh;
-    SDL_GetWindowSize(g->win, &ww, &wh);
-
     mat4x4 MVP;
-    float aspect = (float) ww / (float) wh,
-          size = 1.0;
 
 #if ORTHO
+    float size = 1.0;
     mat4x4_ortho(MVP, -(aspect * size), aspect * size, -size, size, 0, 100);
 #else
     mat4x4 Projection, View, Model, temp;
@@ -314,7 +327,7 @@ void start_game(game *g) {
 
     SDL_Event e;
     int game_running = 1;
-    size_t count = 0, col = 0;
+    size_t count = 0;
     while (game_running) {
         glClear(GL_COLOR_BUFFER_BIT);
 

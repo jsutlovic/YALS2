@@ -18,7 +18,7 @@ struct game {
     world *w;
     SDL_Window *win;
     SDL_GLContext gl_ctx;
-    GLuint gl_shader;
+    GLint gl_shader;
 };
 
 /*** FUNCTIONS ***/
