@@ -1,7 +1,7 @@
 #include "fills.h"
 
 static void _fill0(world *w, size_t x, size_t y, world_store *cell_val) {
-    *cell_val = 0x3;
+    *cell_val = 0x2;
 }
 
 void fill0(world *w) {
