@@ -273,8 +273,8 @@ void start_game(game *g) {
     mat4x4 Projection, View, Model, temp;
 
     vec3 eye    = {0.0, 0.0, 1.8},
-         center = {0, 0, 0},
-         up     = {0.0, 1.0, 0};
+         center = {0.0, 0.0, 0.0},
+         up     = {0.0, 1.0, 0.0};
 
     mat4x4_perspective(Projection, 45.0f, aspect, 0.1f, 100.0f);
     mat4x4_look_at(View, eye, center, up);

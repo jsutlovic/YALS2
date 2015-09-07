@@ -31,7 +31,15 @@ struct world {
     world_store *data;
 };
 
-typedef void (*iter_world_func_type) (world *w, size_t x, size_t y, world_store *cell_val);
+typedef struct world_cell_pos world_cell_pos;
+struct world_cell_pos {
+    world *w;
+    size_t x;
+    size_t y;
+    world_store *cell_val;
+};
+
+typedef void (*iter_world_func_type) (world_cell_pos *wcp);
 
 /*** FUNCTIONS ***/
 
