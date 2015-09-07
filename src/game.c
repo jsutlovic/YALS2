@@ -363,9 +363,23 @@ void start_game(game *g) {
                 g->state = ENDED;
             }
             if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_n) {
-                world_half_step(g->w);
+                g->state = RUNNING;
             }
-            if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_SPACE) {
+            if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_n) {
+                g->state = PAUSED;
+            }
+            if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_s) {
+                if (g->state == PAUSED) {
+                    world_half_step(g->w);
+                }
+            }
+            if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_h) {
+                if (g->w->state != CALC) {
+                    world_half_step(g->w);
+                }
+                g->sub_state = g->sub_state == FULL ? HALF : FULL;
+            }
+            if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_SPACE) {
                 g->state = g->state == RUNNING ? PAUSED : RUNNING;
             }
         }
@@ -373,7 +387,10 @@ void start_game(game *g) {
         // Update the world
         ++count;
         if (g->state == RUNNING) {
-            world_half_step(g->w);
+            switch (g->sub_state) {
+                case(FULL): world_step(g->w); break;
+                case(HALF): world_half_step(g->w); break;
+            }
         }
 
         glBindBuffer(GL_TEXTURE_BUFFER, world_data_buffer);

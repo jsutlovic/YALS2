@@ -20,6 +20,12 @@ enum game_state {
     ENDED=2,
 };
 
+typedef enum game_sub_state game_sub_state;
+enum game_sub_state {
+    FULL=0,
+    HALF=1,
+};
+
 typedef struct game game;
 struct game {
     world *w;
@@ -27,6 +33,7 @@ struct game {
     SDL_GLContext gl_ctx;
     GLint gl_shader;
     game_state state;
+    game_sub_state sub_state;
 };
 
 /*** FUNCTIONS ***/
