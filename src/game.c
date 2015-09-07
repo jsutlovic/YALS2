@@ -384,6 +384,18 @@ void start_game(game *g) {
             if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_SPACE) {
                 g->state = g->state == RUNNING ? PAUSED : RUNNING;
             }
+            if (e.type == SDL_KEYUP && e.key.keysym.sym >= SDLK_0 && e.key.keysym.sym <= SDLK_9) {
+                switch(e.key.keysym.sym) {
+                    case(SDLK_0): fill0(g->w); g->state = PAUSED; break;
+                    case(SDLK_1): fill1(g->w); g->state = PAUSED; break;
+                    case(SDLK_2): fill2(g->w); g->state = PAUSED; break;
+                    case(SDLK_3): fill3(g->w); g->state = PAUSED; break;
+                    case(SDLK_4): fill4(g->w); g->state = PAUSED; break;
+                    case(SDLK_5): fill5(g->w); g->state = PAUSED; break;
+                    case(SDLK_6): fill6(g->w); g->state = PAUSED; break;
+                    case(SDLK_7): fill7(g->w); g->state = PAUSED; break;
+                }
+            }
         }
 
         // Update the world

@@ -10,6 +10,7 @@
 #include "res_path.h"
 #include "world.h"
 #include "linmath.h"
+#include "fills.h"
 
 /*** TYPES ***/
 
