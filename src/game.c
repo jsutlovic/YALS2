@@ -328,7 +328,7 @@ void start_game(game *g) {
     SDL_Event e;
     int game_running = 1;
     size_t count = 0;
-    while (game_running) {
+    while (g->state != ENDED) {
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(g->gl_shader);
@@ -357,18 +357,24 @@ void start_game(game *g) {
         // Events
         if (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
-                game_running = 0;
+                g->state = ENDED;
             }
             if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_ESCAPE) {
-                game_running = 0;
+                g->state = ENDED;
             }
             if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_n) {
                 world_half_step(g->w);
+            }
+            if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_SPACE) {
+                g->state = g->state == RUNNING ? PAUSED : RUNNING;
             }
         }
 
         // Update the world
         ++count;
+        if (g->state == RUNNING) {
+            world_half_step(g->w);
+        }
 
         glBindBuffer(GL_TEXTURE_BUFFER, world_data_buffer);
         glBufferSubData(GL_TEXTURE_BUFFER, 0, g->w->data_size*sizeof(world_store), g->w->data);
@@ -376,7 +382,8 @@ void start_game(game *g) {
     }
     Uint32 end_loop = SDL_GetTicks();
     float total = (end_loop - start_loop) / 1000.0;
-    printf("World generations: %lu in %.4f seconds, %.4f gen/s\n", count, total, count / total);
+    printf("Frames: %lu in %.4f seconds, %.4f f/s\n", count, total, count / total);
+    printf("World generations: %lu in %.4f seconds, %.4f gen/s\n", g->w->generation, total, g->w->generation / total);
 }
 
 void destroy_game(game *g) {

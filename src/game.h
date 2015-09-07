@@ -13,12 +13,20 @@
 
 /*** TYPES ***/
 
+typedef enum game_state game_state;
+enum game_state {
+    PAUSED=0,
+    RUNNING=1,
+    ENDED=2,
+};
+
 typedef struct game game;
 struct game {
     world *w;
     SDL_Window *win;
     SDL_GLContext gl_ctx;
     GLint gl_shader;
+    game_state state;
 };
 
 /*** FUNCTIONS ***/

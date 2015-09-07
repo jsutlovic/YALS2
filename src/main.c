@@ -7,7 +7,7 @@
 #define GAME 1
 
 int main() {
-#if GAME
+#if GAME && !PROFILE
 
     game *g = init_game(178, 100);
     printf("World size: %lu\n", g->w->data_size);
