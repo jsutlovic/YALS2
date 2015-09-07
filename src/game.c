@@ -361,31 +361,9 @@ void start_game(game *g) {
             if (e.type == SDL_QUIT) {
                 g->state = ENDED;
             }
-            if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_ESCAPE) {
-                g->state = ENDED;
-            }
-            if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_n) {
-                g->state = RUNNING;
-            }
-            if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_n) {
-                g->state = PAUSED;
-            }
-            if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_s) {
-                if (g->state == PAUSED) {
-                    world_half_step(g->w);
-                }
-            }
-            if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_h) {
-                if (g->w->state != CALC) {
-                    world_half_step(g->w);
-                }
-                g->sub_state = g->sub_state == FULL ? HALF : FULL;
-            }
-            if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_SPACE) {
-                g->state = g->state == RUNNING ? PAUSED : RUNNING;
-            }
-            if (e.type == SDL_KEYUP && e.key.keysym.sym >= SDLK_0 && e.key.keysym.sym <= SDLK_9) {
+            if (e.type == SDL_KEYUP) {
                 switch(e.key.keysym.sym) {
+                    // Fills
                     case(SDLK_0): fill0(g->w); g->state = PAUSED; break;
                     case(SDLK_1): fill1(g->w); g->state = PAUSED; break;
                     case(SDLK_2): fill2(g->w); g->state = PAUSED; break;
@@ -394,6 +372,30 @@ void start_game(game *g) {
                     case(SDLK_5): fill5(g->w); g->state = PAUSED; break;
                     case(SDLK_6): fill6(g->w); g->state = PAUSED; break;
                     case(SDLK_7): fill7(g->w); g->state = PAUSED; break;
+
+                    // Quit
+                    case(SDLK_ESCAPE):
+                    case(SDLK_q): g->state = ENDED; break;
+
+                    // End running
+                    case(SDLK_n): g->state = PAUSED; break;
+                    // Toggle running
+                    case(SDLK_SPACE):
+                         g->state = g->state == RUNNING ? PAUSED : RUNNING;
+                         break;
+                     // Toggle sub-state
+                    case(SDLK_h):
+                         if (g->w->state != CALC) {
+                             world_half_step(g->w);
+                         }
+                         g->sub_state = g->sub_state == FULL ? HALF : FULL;
+                         break;
+                }
+            } else if (e.type == SDL_KEYDOWN) {
+                switch(e.key.keysym.sym) {
+                    // Start running
+                    case(SDLK_n): g->state = RUNNING; break;
+                    case(SDLK_s): g->state == PAUSED ? world_half_step(g->w) : NULL; break;
                 }
             }
         }

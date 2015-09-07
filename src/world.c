@@ -216,6 +216,8 @@ void world_half_step(world *w) {
 }
 
 void world_step(world *w) {
-    world_half_step(w);
+    if (w->state == CALC) {
+        world_half_step(w);
+    }
     world_half_step(w);
 }
