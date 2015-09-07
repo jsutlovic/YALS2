@@ -1,8 +1,8 @@
 #include "game.h"
 
 #define VERTS_PER_TRIANGLE 6
-#define MULTISAMPLE 1
-#define ORTHO 0
+#define MULTISAMPLE 0
+#define ORTHO 1
 #define PADDING 1
 #define VSYNC 1
 
@@ -362,14 +362,13 @@ void start_game(game *g) {
             if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_ESCAPE) {
                 game_running = 0;
             }
-            if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_n) {
+            if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_n) {
                 world_half_step(g->w);
             }
         }
 
         // Update the world
         ++count;
-        world_half_step(g->w);
 
         glBindBuffer(GL_TEXTURE_BUFFER, world_data_buffer);
         glBufferSubData(GL_TEXTURE_BUFFER, 0, g->w->data_size*sizeof(world_store), g->w->data);

@@ -9,9 +9,9 @@
 int main() {
 #if GAME
 
-    game *g = init_game(160, 90);
+    game *g = init_game(178, 100);
     printf("World size: %lu\n", g->w->data_size);
-    fill7(g->w);
+    fill2(g->w);
     setup_game(g, 1280, 720);
 
     start_game(g);
