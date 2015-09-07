@@ -162,6 +162,8 @@ static void _init_gfx(game *g, int win_width, int win_height) {
 
 game* init_game(size_t xlim, size_t ylim) {
     game *g = malloc(sizeof(game));
+    g->state = PAUSED;
+    g->sub_state = FULL;
     g->w = init_world(xlim, ylim);
     return g;
 }
