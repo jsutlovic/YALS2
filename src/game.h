@@ -14,18 +14,18 @@
 
 /*** TYPES ***/
 
-typedef enum game_state game_state;
 enum game_state {
     PAUSED=0,
     RUNNING=1,
     ENDED=2,
 };
+typedef enum game_state game_state;
 
-typedef enum game_sub_state game_sub_state;
 enum game_sub_state {
     FULL=0,
     HALF=1,
 };
+typedef enum game_sub_state game_sub_state;
 
 typedef struct game game;
 struct game {

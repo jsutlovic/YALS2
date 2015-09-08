@@ -329,7 +329,6 @@ void start_game(game *g) {
             triangle_colours[3]);
 
     SDL_Event e;
-    int game_running = 1;
     size_t count = 0;
     while (g->state != ENDED) {
         glClear(GL_COLOR_BUFFER_BIT);
@@ -396,7 +395,7 @@ void start_game(game *g) {
                 switch(e.key.keysym.sym) {
                     // Start running
                     case(SDLK_n): g->state = RUNNING; break;
-                    case(SDLK_s): g->state == PAUSED ? world_half_step(g->w) : NULL; break;
+                    case(SDLK_s): if (g->state == PAUSED) { world_half_step(g->w); }; break;
                 }
             }
         }
