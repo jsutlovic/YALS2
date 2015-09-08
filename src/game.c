@@ -258,12 +258,13 @@ void start_game(game *g) {
     GLsizei world_vertices_count = _world_vertices(g->w, aspect, &world_vertices);
 
     float triangle_colours[] = {
-        0.01568, 0.01568, 0.01568, 1.0,  // Background
-        0.03137, 0.03137, 0.03137, 1.0,  // Dead
-        1.00000, 1.00000, 1.00000, 1.0,  // Born
-        0.26666, 0.26666, 0.26666, 1.0,  // Dying
-        0.00000, 0.73333, 0.00000, 1.0,  // (Still) Alive
-        0.00000, 0.73333, 0.00000, 1.0,  // (Still) Alive
+        0.015, 0.015, 0.015, 1.0,  // Background
+        /* 0.015, 0.065, 0.215, 1.0,  // Background */
+        0.031, 0.031, 0.031, 0.0,  // Dead
+        1.000, 1.000, 1.000, 1.0,  // Born
+        0.266, 0.266, 0.266, 1.0,  // Dying
+        0.000, 0.733, 0.000, 1.0,  // Alive
+        0.000, 0.733, 0.000, 1.0,  // Still Alive
     };
 
     mat4x4 MVP;
@@ -274,9 +275,9 @@ void start_game(game *g) {
 #else
     mat4x4 Projection, View, Model, temp;
 
-    vec3 eye    = {0.0, 0.0, 1.8},
-         center = {0.0, 0.0, 0.0},
-         up     = {0.0, 1.0, 0.0};
+    vec3 eye    = {-2.2, -1.0, 0.4},
+         center = {-0.8, 0.0, 0.0},
+         up     = {0.0, 0.0, 1.0};
 
     mat4x4_perspective(Projection, 45.0f, aspect, 0.1f, 100.0f);
     mat4x4_look_at(View, eye, center, up);

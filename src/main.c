@@ -9,7 +9,7 @@
 int main() {
 #if GAME && !PROFILE
 
-    game *g = init_game(178, 100);
+    game *g = init_game(160, 100);
     printf("World size: %lu\n", g->w->data_size);
     fill2(g->w);
     setup_game(g, 1280, 720);
