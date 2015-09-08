@@ -11,6 +11,7 @@
 #include "world.h"
 #include "linmath.h"
 #include "fills.h"
+#include "colors.h"
 
 /*** TYPES ***/
 
@@ -35,6 +36,7 @@ struct game {
     GLint gl_shader;
     game_state state;
     game_sub_state sub_state;
+    int color_scheme;
 };
 
 /*** FUNCTIONS ***/

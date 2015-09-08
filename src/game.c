@@ -162,8 +162,12 @@ static void _init_gfx(game *g, int win_width, int win_height) {
 
 game* init_game(size_t xlim, size_t ylim) {
     game *g = malloc(sizeof(game));
+
+    // Defaults
     g->state = PAUSED;
     g->sub_state = FULL;
+    g->color_scheme = 0;
+
     g->w = init_world(xlim, ylim);
     return g;
 }
@@ -257,16 +261,6 @@ void start_game(game *g) {
     GLfloat *world_vertices;
     GLsizei world_vertices_count = _world_vertices(g->w, aspect, &world_vertices);
 
-    float triangle_colours[] = {
-        0.015, 0.015, 0.015, 1.0,  // Background
-        /* 0.015, 0.065, 0.215, 1.0,  // Background */
-        0.031, 0.031, 0.031, 0.0,  // Dead
-        1.000, 1.000, 1.000, 1.0,  // Born
-        0.266, 0.266, 0.266, 1.0,  // Dying
-        0.000, 0.733, 0.000, 1.0,  // Alive
-        0.000, 0.733, 0.000, 1.0,  // Still Alive
-    };
-
     mat4x4 MVP;
 
 #if ORTHO
@@ -275,8 +269,8 @@ void start_game(game *g) {
 #else
     mat4x4 Projection, View, Model, temp;
 
-    vec3 eye    = {-2.2, -1.0, 0.4},
-         center = {-0.8, 0.0, 0.0},
+    vec3 eye    = {-1.8, -1.0, 0.4},
+         center = {-0.6, 0.0, 0.0},
          up     = {0.0, 0.0, 1.0};
 
     mat4x4_perspective(Projection, 45.0f, aspect, 0.1f, 100.0f);
@@ -316,26 +310,23 @@ void start_game(game *g) {
     GLuint world_texture;
     glGenTextures(1, &world_texture);
 
-    glUseProgram(g->gl_shader);
-    glUniform4fv(colors_id, 5, &triangle_colours[4]);
-    glUseProgram(0);
-
 
     Uint32 start_loop = SDL_GetTicks();
-    glClearColor(
-            triangle_colours[0],
-            triangle_colours[1],
-            triangle_colours[2],
-            triangle_colours[3]);
 
     SDL_Event e;
     size_t count = 0;
     while (g->state != ENDED) {
+        glClearColor(
+                COLOR_SCHEMES[g->color_scheme][0],
+                COLOR_SCHEMES[g->color_scheme][1],
+                COLOR_SCHEMES[g->color_scheme][2],
+                COLOR_SCHEMES[g->color_scheme][3]);
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(g->gl_shader);
 
         glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &MVP[0][0]);
+        glUniform4fv(colors_id, 5, &COLOR_SCHEMES[g->color_scheme][4]);
         glUniform1ui(inv_state_id, !g->w->state);
 
         glBindBuffer(GL_ARRAY_BUFFER, triangle_buffer);
@@ -389,6 +380,12 @@ void start_game(game *g) {
                              world_half_step(g->w);
                          }
                          g->sub_state = g->sub_state == FULL ? HALF : FULL;
+                         break;
+                    case(SDLK_c):
+                         g->color_scheme++;
+                         if (g->color_scheme >= COLOR_SCHEME_COUNT) {
+                             g->color_scheme = 0;
+                         }
                          break;
                 }
             } else if (e.type == SDL_KEYDOWN) {
