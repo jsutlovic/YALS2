@@ -316,9 +316,32 @@ void start_game(game *g) {
     glGenTextures(1, &world_texture);
 
 
+    // Overlay stuff
+    mat4x4 overlay_mvp;
+    mat4x4_ortho(overlay_mvp, -aspect, aspect, -1.0, 1.0, 0, 10);
+
+    float overlay_triangles[] = {
+        -aspect+0.2,  0.8,
+        -aspect+0.2, -0.8,
+         aspect-0.2, -0.8,
+        -aspect+0.2,  0.8,
+         aspect-0.2, -0.8,
+         aspect-0.2,  0.8,
+    };
+
+    GLuint overlay_color_id = glGetUniformLocation(g->overlay_shader, "color");
+    GLuint overlay_matrix_id = glGetUniformLocation(g->overlay_shader, "MVP");
+
+    GLuint overlay_buffer;
+    glGenBuffers(1, &overlay_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, overlay_buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(overlay_triangles), &overlay_triangles, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
     Uint32 start_loop = SDL_GetTicks();
 
     SDL_Event e;
+    int overlay_enabled = 0;
     size_t count = 0;
     while (g->state != ENDED) {
         glClearColor(
@@ -331,7 +354,7 @@ void start_game(game *g) {
         glUseProgram(g->world_shader);
 
         glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &MVP[0][0]);
-        glUniform4fv(colors_id, 5, &COLOR_SCHEMES[g->color_scheme][4]);
+        glUniform4fv(colors_id, 5, &COLOR_SCHEMES[g->color_scheme][8]);
         glUniform1ui(inv_state_id, !g->w->state);
 
         glBindBuffer(GL_ARRAY_BUFFER, triangle_buffer);
@@ -346,9 +369,27 @@ void start_game(game *g) {
         glDrawArrays(GL_TRIANGLES, 0, world_vertices_count / 2);
 
         glDisableVertexAttribArray(0);
-        glDisableVertexAttribArray(1);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         glUseProgram(0);
+
+        if (overlay_enabled) {
+            // Draw overlay
+            glUseProgram(g->overlay_shader);
+            glUniformMatrix4fv(overlay_matrix_id, 1, GL_FALSE, &overlay_mvp[0][0]);
+            glUniform4fv(overlay_color_id, 1, &COLOR_SCHEMES[g->color_scheme][4]);
+
+            glBindBuffer(GL_ARRAY_BUFFER, overlay_buffer);
+
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+            glDisableVertexAttribArray(0);
+
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+            glUseProgram(0);
+        }
 
         SDL_GL_SwapWindow(g->win);
 
@@ -376,6 +417,9 @@ void start_game(game *g) {
                     case(SDLK_ESCAPE):
                     case(SDLK_q): g->state = ENDED; break;
 
+                    // Overlay
+                    case(SDLK_TAB): overlay_enabled = 0; break;
+
                     // End running
                     case(SDLK_n): g->state = PAUSED; break;
                     // Toggle running
@@ -401,6 +445,8 @@ void start_game(game *g) {
                     // Start running
                     case(SDLK_n): g->state = RUNNING; break;
                     case(SDLK_s): if (g->state == PAUSED) { world_half_step(g->w); }; break;
+                    // Overlay
+                    case(SDLK_TAB): overlay_enabled = 1; break;
                 }
             }
         }
