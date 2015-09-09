@@ -34,6 +34,7 @@ struct game {
     SDL_Window *win;
     SDL_GLContext gl_ctx;
     GLint world_shader;
+    GLint overlay_shader;
     game_state state;
     game_sub_state sub_state;
     int color_scheme;

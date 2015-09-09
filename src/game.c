@@ -2,7 +2,7 @@
 
 #define VERTS_PER_TRIANGLE 6
 #define MULTISAMPLE 0
-#define ORTHO 1
+#define ORTHO 0
 #define PADDING 1
 #define VSYNC 1
 
@@ -145,16 +145,27 @@ static void _init_gfx(game *g, int win_width, int win_height) {
 
     char *res_path = get_res_path(""),
          *w_vs_path = join_path(res_path, "world_vert.glsl"),
-         *w_fs_path = join_path(res_path, "world_frag.glsl");
+         *w_fs_path = join_path(res_path, "world_frag.glsl"),
+         *o_vs_path = join_path(res_path, "overlay_vert.glsl"),
+         *o_fs_path = join_path(res_path, "overlay_frag.glsl");
 
     g->world_shader = _shader_init(w_vs_path, w_fs_path);
+    g->overlay_shader = _shader_init(o_vs_path, o_fs_path);
 
     free(w_vs_path);
     free(w_fs_path);
+    free(o_vs_path);
+    free(o_fs_path);
     free(res_path);
 
     if (g->world_shader == -1) {
-        puts("ACK");
+        puts("Error creating world shader!");
+        _destroy_gfx(g);
+        exit(EXIT_FAILURE);
+    }
+
+    if (g->overlay_shader == -1) {
+        puts("Error creating overlay shader!");
         _destroy_gfx(g);
         exit(EXIT_FAILURE);
     }
