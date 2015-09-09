@@ -144,16 +144,16 @@ static void _init_gfx(game *g, int win_width, int win_height) {
     _sdl_init(g, win_width, win_height);
 
     char *res_path = get_res_path(""),
-         *vs_path = join_path(res_path, "vs1.glsl"),
-         *fs_path = join_path(res_path, "fs1.glsl");
+         *w_vs_path = join_path(res_path, "world_vert.glsl"),
+         *w_fs_path = join_path(res_path, "world_frag.glsl");
 
-    g->gl_shader = _shader_init(vs_path, fs_path);
+    g->world_shader = _shader_init(w_vs_path, w_fs_path);
 
-    free(vs_path);
-    free(fs_path);
+    free(w_vs_path);
+    free(w_fs_path);
     free(res_path);
 
-    if (g->gl_shader == -1) {
+    if (g->world_shader == -1) {
         puts("ACK");
         _destroy_gfx(g);
         exit(EXIT_FAILURE);
@@ -226,11 +226,11 @@ static GLsizei _world_vertices(world *w, GLfloat aspect, GLfloat **v) {
             (*v)[idx_base+0] = (*v)[idx_base+6] = left; // left
             (*v)[idx_base+1] = (*v)[idx_base+7] = top; // top
 
-            (*v)[idx_base+4] = (*v)[idx_base+8] = right; // right
-            (*v)[idx_base+5] = (*v)[idx_base+9] = bottom; // bottom
-
             (*v)[idx_base+2] = left; // left
             (*v)[idx_base+3] = bottom; // bottom
+
+            (*v)[idx_base+4] = (*v)[idx_base+8] = right; // right
+            (*v)[idx_base+5] = (*v)[idx_base+9] = bottom; // bottom
 
             (*v)[idx_base+10] = right; // right
             (*v)[idx_base+11] = top; // top
@@ -276,10 +276,10 @@ void start_game(game *g) {
 
     int world_texture_id = 0;
 
-    GLuint matrix_id = glGetUniformLocation(g->gl_shader, "MVP");
-    GLuint colors_id = glGetUniformLocation(g->gl_shader, "colors");
-    GLuint inv_state_id = glGetUniformLocation(g->gl_shader, "inv_state");
-    GLuint world_texture_buffer = glGetUniformLocation(g->gl_shader, "world_texture_buffer");
+    GLuint matrix_id = glGetUniformLocation(g->world_shader, "MVP");
+    GLuint colors_id = glGetUniformLocation(g->world_shader, "colors");
+    GLuint inv_state_id = glGetUniformLocation(g->world_shader, "inv_state");
+    GLuint world_texture_buffer = glGetUniformLocation(g->world_shader, "world_texture_buffer");
 
     // Vertex arrays
     GLuint vao;
@@ -317,7 +317,7 @@ void start_game(game *g) {
                 COLOR_SCHEMES[g->color_scheme][3]);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glUseProgram(g->gl_shader);
+        glUseProgram(g->world_shader);
 
         glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &MVP[0][0]);
         glUniform4fv(colors_id, 5, &COLOR_SCHEMES[g->color_scheme][4]);
