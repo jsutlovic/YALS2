@@ -77,7 +77,7 @@ static GLuint _create_shader(GLenum shader_type, const char *shader_file) {
     glGetShaderiv(shader_id, GL_COMPILE_STATUS, &status);
 
     if (status == GL_FALSE) {
-        puts("FAILED TO COMPILE SHADER:");
+        printf("FAILED TO COMPILE SHADER: %s\n", shader_file);
         puts(shader_source);
 
         GLint infoLogLength;
@@ -89,7 +89,7 @@ static GLuint _create_shader(GLenum shader_type, const char *shader_file) {
         printf("\nGLSL error: %s", strInfoLog);
         return -1;
     } else {
-        puts("Shader compiled!");
+        printf("Shader compiled: %s\n", shader_file);
     }
 
     free(shader_source);
@@ -125,7 +125,7 @@ static GLuint _shader_init(const char *vs_path, const char *fs_path) {
         printf("\nGLSL error: %s", strInfoLog);
         return -1;
     } else {
-        puts("Shaders linked");
+        printf("Shader program linked: %d\n", shader_program);
     }
 
     glDetachShader(shader_program, vertex_shader);
@@ -317,27 +317,93 @@ void start_game(game *g) {
 
 
     // Overlay stuff
+    GLfloat overlay_size = 0.6;
     mat4x4 overlay_mvp;
     mat4x4_ortho(overlay_mvp, -aspect, aspect, -1.0, 1.0, 0, 10);
 
     float overlay_triangles[] = {
-        -aspect+0.2,  0.8,
-        -aspect+0.2, -0.8,
-         aspect-0.2, -0.8,
-        -aspect+0.2,  0.8,
-         aspect-0.2, -0.8,
-         aspect-0.2,  0.8,
+        -aspect*overlay_size,  overlay_size, // Top left
+        -aspect*overlay_size, -overlay_size, // Bottom left
+         aspect*overlay_size, -overlay_size, // Bottom right
+         aspect*overlay_size,  overlay_size, // Top right
+    };
+
+    GLubyte overlay_elements[] = {
+        0, 1, 2,
+        0, 2, 3
+    };
+
+    float overlay_tex_coords[] = {
+        0.0, 0.0, // Top left
+        0.0, 1.0, // Bottom left
+        1.0, 1.0, // Bottom right
+        1.0, 0.0, // Top right
     };
 
     GLuint overlay_color_id = glGetUniformLocation(g->overlay_shader, "color");
     GLuint overlay_matrix_id = glGetUniformLocation(g->overlay_shader, "MVP");
+    GLint overlay_tex_coords_id = glGetAttribLocation(g->overlay_shader, "texCoord");
 
-    GLuint overlay_buffer;
-    glGenBuffers(1, &overlay_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, overlay_buffer);
+    GLuint overlay_vert_buf;
+    glGenBuffers(1, &overlay_vert_buf);
+
+    glBindBuffer(GL_ARRAY_BUFFER, overlay_vert_buf);
     glBufferData(GL_ARRAY_BUFFER, sizeof(overlay_triangles), &overlay_triangles, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+    GLuint overlay_tex_coord_buf;
+    glGenBuffers(1, &overlay_tex_coord_buf);
+
+    glBindBuffer(GL_ARRAY_BUFFER, overlay_tex_coord_buf);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(overlay_tex_coords), &overlay_tex_coords, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    GLuint overlay_el_buf;
+    glGenBuffers(1, &overlay_el_buf);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, overlay_el_buf);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(overlay_elements), &overlay_elements, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    SDL_Surface *overlay_surf = SDL_CreateRGBSurface(
+        0, 100, 100, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
+    );
+    if (overlay_surf == NULL) {
+        printf("BLARGH: %s\n", SDL_GetError());
+        exit(EXIT_FAILURE);
+    }
+    SDL_FillRect(overlay_surf, NULL, SDL_MapRGBA(overlay_surf->format, 0x00, 0xff, 0x00, 0xff)); // Fill red
+    printf("Bytes per pixel: %d\n", overlay_surf->format->BytesPerPixel);
+    printf("Rmask format: %8x\n", overlay_surf->format->Rmask);
+    printf("Pitch: %d\n", overlay_surf->pitch);
+    int alignment = 8;
+    printf("exp pitch: %d\n", (overlay_surf->w*overlay_surf->format->BytesPerPixel+alignment-1)/alignment*alignment);
+    GLenum overlay_tex_format = GL_RGBA,
+           overlay_int_format = GL_RGBA8,
+           overlay_tex_type = GL_UNSIGNED_INT_8_8_8_8;
+
+
+    GLuint overlay_tex;
+    glGenTextures(1, &overlay_tex);
+    glBindTexture(GL_TEXTURE_2D, overlay_tex);
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, overlay_int_format, overlay_surf->w, overlay_surf->h, 0, overlay_tex_format, overlay_tex_type, overlay_surf->pixels);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // reset
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // Start game
     Uint32 start_loop = SDL_GetTicks();
 
     SDL_Event e;
@@ -369,6 +435,7 @@ void start_game(game *g) {
         glDrawArrays(GL_TRIANGLES, 0, world_vertices_count / 2);
 
         glDisableVertexAttribArray(0);
+        glBindTexture(GL_TEXTURE_BUFFER, 0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         glUseProgram(0);
@@ -379,14 +446,23 @@ void start_game(game *g) {
             glUniformMatrix4fv(overlay_matrix_id, 1, GL_FALSE, &overlay_mvp[0][0]);
             glUniform4fv(overlay_color_id, 1, &COLOR_SCHEMES[g->color_scheme][4]);
 
-            glBindBuffer(GL_ARRAY_BUFFER, overlay_buffer);
-
+            glBindBuffer(GL_ARRAY_BUFFER, overlay_vert_buf);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, overlay_el_buf);
             glEnableVertexAttribArray(0);
             glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-            glDisableVertexAttribArray(0);
 
+            glBindBuffer(GL_ARRAY_BUFFER, overlay_tex_coord_buf);
+            glEnableVertexAttribArray(overlay_tex_coords_id);
+            glVertexAttribPointer(overlay_tex_coords_id, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+            glBindTexture(GL_TEXTURE_2D, overlay_tex);
+            glActiveTexture(GL_TEXTURE0);
+
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
+
+            glDisableVertexAttribArray(0);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
             glUseProgram(0);
         }
