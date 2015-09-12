@@ -30,7 +30,7 @@ static const float COLOR_SCHEMES[COLOR_SCHEME_COUNT][COLOR_SCHEME_SIZE] = {
     // Light: Blue and gray/white
     {
         0.867, 0.867, 0.867, 1.0,  // Background
-        0.667, 0.667, 0.667, 0.6,  // Overlay
+        0.567, 0.567, 0.567, 0.7,  // Overlay
         0.937, 0.937, 0.937, 1.0,  // Dead
         0.718, 0.941, 1.000, 1.0,  // Born
         0.667, 0.667, 0.667, 1.0,  // Dying
@@ -63,7 +63,7 @@ static const float COLOR_SCHEMES[COLOR_SCHEME_COUNT][COLOR_SCHEME_SIZE] = {
     // Dark: Blue and black/white
     {
         0.000, 0.000, 0.000, 1.0,  // Background
-        0.933, 0.933, 0.933, 0.3,  // Overlay
+        0.633, 0.633, 0.633, 0.4,  // Overlay
         0.267, 0.267, 0.267, 1.0,  // Dead
         0.933, 0.933, 0.933, 1.0,  // Born
         0.133, 0.133, 0.133, 1.0,  // Dying
