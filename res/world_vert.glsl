@@ -16,6 +16,7 @@ void main()
     cell_id = gl_VertexID / 6;
     data_offset = cell_id >> 4;
     shift = cell_id & 0xf;
-    cell_val = int(texelFetch(world_texture_buffer, data_offset).r >> (shift*2)) & 3;
+    cell_val = int(texelFetch(world_texture_buffer, data_offset).r);
+    cell_val = (cell_val >> (shift*2)) & (3 << inv_state) & 3;
     vert_color = colors[cell_val << inv_state];
 }
