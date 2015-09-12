@@ -263,6 +263,10 @@ static GLsizei _world_vertices(world *w, GLfloat aspect, GLfloat **v) {
     return vcount;
 }
 
+static Uint32 _map_colorscheme(SDL_PixelFormat *format, const float *cols) {
+    return SDL_MapRGBA(format, cols[0]*0xff, cols[1]*0xff, cols[2]*0xff, cols[3]*0xff);
+}
+
 void start_game(game *g) {
     int ww, wh;
     SDL_GetWindowSize(g->win, &ww, &wh);
@@ -346,9 +350,18 @@ void start_game(game *g) {
         1.0, 0.0, // Top right
     };
 
+    float tex_scale = 100.0;
+
     GLuint overlay_color_id = glGetUniformLocation(g->overlay_shader, "color");
     GLuint overlay_matrix_id = glGetUniformLocation(g->overlay_shader, "MVP");
+    GLuint tex_scale_id = glGetUniformLocation(g->overlay_shader, "scale");
     GLint overlay_tex_coords_id = glGetAttribLocation(g->overlay_shader, "texCoord");
+
+    glUseProgram(g->overlay_shader);
+    glUniformMatrix4fv(overlay_matrix_id, 1, GL_FALSE, &overlay_mvp[0][0]);
+    glUniform4fv(overlay_color_id, 1, &COLOR_SCHEMES[g->color_scheme][4]);
+    glUniform1f(tex_scale_id, tex_scale);
+    glUseProgram(0);
 
     GLuint overlay_vert_buf;
     glGenBuffers(1, &overlay_vert_buf);
@@ -371,23 +384,46 @@ void start_game(game *g) {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(overlay_elements), &overlay_elements, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
+    // Set up font things
+    char *res_path = get_res_path(""),
+         *font_path = join_path(res_path, "DejaVuSansMono.ttf");
+
+    TTF_Font *font = TTF_OpenFont(font_path, 14);
+    SDL_Color fontcol = {0xff, 0xff, 0xff, 0xff};
+    int max_fps_text = 8;
+    char *fps_text = calloc(max_fps_text+1, sizeof(char));
+
+    Uint32 rmask = 0xff000000;
+    Uint32 gmask = 0x00ff0000;
+    Uint32 bmask = 0x0000ff00;
+    Uint32 amask = 0x000000ff;
+    GLenum overlay_tex_format = GL_RGBA,
+           overlay_int_format = GL_RGBA8,
+           overlay_tex_type = GL_UNSIGNED_INT_8_8_8_8;
+    int alignment = 4;
+
     SDL_Surface *overlay_surf = SDL_CreateRGBSurface(
-        0, 100, 100, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff
+        0, 768, 432, 32, rmask, gmask, bmask, amask
     );
     if (overlay_surf == NULL) {
         printf("BLARGH: %s\n", SDL_GetError());
         exit(EXIT_FAILURE);
     }
-    SDL_FillRect(overlay_surf, NULL, SDL_MapRGBA(overlay_surf->format, 0x00, 0xff, 0x00, 0xff)); // Fill red
-    printf("Bytes per pixel: %d\n", overlay_surf->format->BytesPerPixel);
-    printf("Rmask format: %8x\n", overlay_surf->format->Rmask);
-    printf("Pitch: %d\n", overlay_surf->pitch);
-    int alignment = 8;
-    printf("exp pitch: %d\n", (overlay_surf->w*overlay_surf->format->BytesPerPixel+alignment-1)/alignment*alignment);
-    GLenum overlay_tex_format = GL_RGBA,
-           overlay_int_format = GL_RGBA8,
-           overlay_tex_type = GL_UNSIGNED_INT_8_8_8_8;
+    Uint32 overlay_bg = _map_colorscheme(overlay_surf->format, &COLOR_SCHEMES[g->color_scheme][4]);
 
+    fps_text[0] = '0';
+    SDL_Surface *font_surf;
+    font_surf = TTF_RenderText_Solid(font, fps_text, fontcol);
+    int font_w = font_surf->w;
+    int font_h = font_surf->h;
+    SDL_free(font_surf);
+
+    SDL_Surface *fps_surf = SDL_CreateRGBSurface(
+        0, font_w*max_fps_text+1, font_h, 32, rmask, gmask, bmask, amask
+    );
+
+    SDL_FillRect(overlay_surf, NULL, overlay_bg); // Fill red
+    SDL_FillRect(fps_surf, NULL, overlay_bg); // Fill red
 
     GLuint overlay_tex;
     glGenTextures(1, &overlay_tex);
@@ -396,31 +432,32 @@ void start_game(game *g) {
     glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, overlay_int_format, overlay_surf->w, overlay_surf->h, 0, overlay_tex_format, overlay_tex_type, overlay_surf->pixels);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, overlay_int_format, overlay_surf->w, overlay_surf->h, 0, overlay_tex_format, overlay_tex_type, overlay_surf->pixels);
 
-    // reset
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
 
     // Start game
     Uint32 start_loop = SDL_GetTicks();
+    Uint32 cur_ticks = SDL_GetTicks();
+    int fps_upd = 1;
+
+    glClearColor(
+            COLOR_SCHEMES[g->color_scheme][0],
+            COLOR_SCHEMES[g->color_scheme][1],
+            COLOR_SCHEMES[g->color_scheme][2],
+            COLOR_SCHEMES[g->color_scheme][3]);
 
     SDL_Event e;
-    int overlay_enabled = 0;
+    int overlay_enabled = 1;
     size_t count = 0;
     while (g->state != ENDED) {
-        glClearColor(
-                COLOR_SCHEMES[g->color_scheme][0],
-                COLOR_SCHEMES[g->color_scheme][1],
-                COLOR_SCHEMES[g->color_scheme][2],
-                COLOR_SCHEMES[g->color_scheme][3]);
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(g->world_shader);
@@ -446,11 +483,11 @@ void start_game(game *g) {
 
         glUseProgram(0);
 
+        cur_ticks = SDL_GetTicks();
+
         if (overlay_enabled) {
             // Draw overlay
             glUseProgram(g->overlay_shader);
-            glUniformMatrix4fv(overlay_matrix_id, 1, GL_FALSE, &overlay_mvp[0][0]);
-            glUniform4fv(overlay_color_id, 1, &COLOR_SCHEMES[g->color_scheme][4]);
 
             glBindBuffer(GL_ARRAY_BUFFER, overlay_vert_buf);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, overlay_el_buf);
@@ -471,6 +508,37 @@ void start_game(game *g) {
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
             glUseProgram(0);
+
+            // World generations
+            snprintf(fps_text, max_fps_text+1, "%8lu", g->w->generation);
+            font_surf = TTF_RenderText_Solid(font, fps_text, fontcol);
+            SDL_FillRect(fps_surf, NULL, overlay_bg);
+            SDL_BlitSurface(font_surf, NULL, fps_surf, NULL);
+
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 100, 100+fps_surf->h, fps_surf->w, fps_surf->h, overlay_tex_format, overlay_tex_type, fps_surf->pixels);
+            free(font_surf);
+
+            // Render FPS and world generations
+            if (fps_upd & 1) {
+                /* printf("cur_ticks: %5u, %4u\n", cur_ticks, cur_ticks/100); */
+                /* printf("count: %lu, ms: %u\n", count, (cur_ticks - start_loop)); */
+                snprintf(fps_text, max_fps_text+1, "%8.2f", count / ((cur_ticks - start_loop) / 1000.f));
+                font_surf = TTF_RenderText_Solid(font, fps_text, fontcol);
+                SDL_FillRect(fps_surf, NULL, overlay_bg);
+                SDL_BlitSurface(font_surf, NULL, fps_surf, NULL);
+
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 100, 100, fps_surf->w, fps_surf->h, overlay_tex_format, overlay_tex_type, fps_surf->pixels);
+                free(font_surf);
+
+                fps_upd = 0;
+            }
+
+            if ((cur_ticks / 100) % 5 == 0) {
+                /* printf("OFF cur_ticks: %u\n", cur_ticks / 100); */
+                fps_upd = 2;
+            } else {
+                fps_upd >>= 1;
+            }
         }
 
         SDL_GL_SwapWindow(g->win);
@@ -520,6 +588,15 @@ void start_game(game *g) {
                          if (g->color_scheme >= COLOR_SCHEME_COUNT) {
                              g->color_scheme = 0;
                          }
+                         glClearColor(
+                                 COLOR_SCHEMES[g->color_scheme][0],
+                                 COLOR_SCHEMES[g->color_scheme][1],
+                                 COLOR_SCHEMES[g->color_scheme][2],
+                                 COLOR_SCHEMES[g->color_scheme][3]);
+                         overlay_bg = _map_colorscheme(overlay_surf->format, &COLOR_SCHEMES[g->color_scheme][4]);
+                         SDL_FillRect(overlay_surf, NULL, overlay_bg);
+                         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, overlay_surf->w, overlay_surf->h, overlay_tex_format, overlay_tex_type, overlay_surf->pixels);
+                         fps_upd = 1;
                          break;
                 }
             } else if (e.type == SDL_KEYDOWN) {
@@ -546,10 +623,6 @@ void start_game(game *g) {
         glBufferSubData(GL_TEXTURE_BUFFER, 0, g->w->data_size*sizeof(world_store), g->w->data);
         glBindBuffer(GL_TEXTURE_BUFFER, 0);
     }
-    Uint32 end_loop = SDL_GetTicks();
-    float total = (end_loop - start_loop) / 1000.0;
-    printf("Frames: %lu in %.4f seconds, %.4f f/s\n", count, total, count / total);
-    printf("World generations: %lu in %.4f seconds, %.4f gen/s\n", g->w->generation, total, g->w->generation / total);
 }
 
 void destroy_game(game *g) {
