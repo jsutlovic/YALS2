@@ -12,6 +12,11 @@ static void _sdl_init(game *g, int win_width, int win_height) {
         exit(EXIT_FAILURE);
     }
 
+    if (TTF_Init() < 0) {
+        puts("Failed to initialize SDL_ttf");
+        exit(EXIT_FAILURE);
+    }
+
     g->win = SDL_CreateWindow(PROGRAM_NAME,
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
@@ -137,6 +142,7 @@ static GLuint _shader_init(const char *vs_path, const char *fs_path) {
 static void _destroy_gfx(game *g) {
     SDL_GL_DeleteContext(g->gl_ctx);
     SDL_DestroyWindow(g->win);
+    TTF_Quit();
     SDL_Quit();
 }
 

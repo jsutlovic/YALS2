@@ -16,9 +16,10 @@ set(CMAKE_C_FLAGS_RELEASE "-g -O3")
 
 include(FindPkgConfig)
 pkg_search_module(SDL2 REQUIRED sdl2)
+pkg_search_module(SDL2TTF REQUIRED SDL2_ttf)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
-include_directories(${SDL2_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS} ${GLEW_INCLUDE_DIRS})
+include_directories(${SDL2_INCLUDE_DIRS} ${SDL2TTF_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS} ${GLEW_INCLUDE_DIRS})
 
 add_subdirectory(src)
 
