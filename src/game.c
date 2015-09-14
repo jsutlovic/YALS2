@@ -165,7 +165,7 @@ game* init_game(size_t xlim, size_t ylim) {
 
     // Defaults
     g->state = PAUSED;
-    g->sub_state = FULL;
+    g->sub_state = WHOLE;
     g->color_scheme = 0;
 
     g->w = init_world(xlim, ylim);
@@ -355,14 +355,17 @@ void start_game(game *g) {
             if (e.type == SDL_KEYUP) {
                 switch(e.key.keysym.sym) {
                     // Fills
-                    case(SDLK_0): fill0(g->w); g->state = PAUSED; break;
-                    case(SDLK_1): fill1(g->w); g->state = PAUSED; break;
-                    case(SDLK_2): fill2(g->w); g->state = PAUSED; break;
-                    case(SDLK_3): fill3(g->w); g->state = PAUSED; break;
-                    case(SDLK_4): fill4(g->w); g->state = PAUSED; break;
-                    case(SDLK_5): fill5(g->w); g->state = PAUSED; break;
-                    case(SDLK_6): fill6(g->w); g->state = PAUSED; break;
-                    case(SDLK_7): fill7(g->w); g->state = PAUSED; break;
+                    case(SDLK_0):
+                    case(SDLK_1):
+                    case(SDLK_2):
+                    case(SDLK_3):
+                    case(SDLK_4):
+                    case(SDLK_5):
+                    case(SDLK_6):
+                    case(SDLK_7):
+                        fill(g->w, e.key.keysym.sym - SDLK_0);
+                        g->state = PAUSED;
+                        break;
 
                     // Quit
                     case(SDLK_ESCAPE):
@@ -379,7 +382,7 @@ void start_game(game *g) {
                          if (g->w->state != CALC) {
                              world_half_step(g->w);
                          }
-                         g->sub_state = g->sub_state == FULL ? HALF : FULL;
+                         g->sub_state = g->sub_state == WHOLE ? HALF : WHOLE;
                          break;
                     case(SDLK_c):
                          g->color_scheme++;
@@ -401,7 +404,7 @@ void start_game(game *g) {
         ++count;
         if (g->state == RUNNING) {
             switch (g->sub_state) {
-                case(FULL): world_step(g->w); break;
+                case(WHOLE): world_step(g->w); break;
                 case(HALF): world_half_step(g->w); break;
             }
         }
