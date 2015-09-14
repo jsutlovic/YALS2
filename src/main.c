@@ -11,7 +11,7 @@ int main() {
 
     game *g = init_game(160, 100);
     printf("World size: %lu\n", g->w->data_size);
-    fill2(g->w);
+    fill(g->w, EVEN_IN_WORLD);
     setup_game(g, 1280, 720);
 
     start_game(g);
@@ -27,7 +27,7 @@ int main() {
 #endif
 
     printf("World size: %lu\n", w->data_size);
-    fill1(w);
+    fill(w, EVEN_IN_ROW);
 
 #if PROFILE
     puts("Start!");

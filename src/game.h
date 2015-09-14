@@ -23,7 +23,7 @@ enum game_state {
 typedef enum game_state game_state;
 
 enum game_sub_state {
-    FULL=0,
+    WHOLE=0,
     HALF=1,
 };
 typedef enum game_sub_state game_sub_state;
