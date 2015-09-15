@@ -33,7 +33,8 @@ world* init_world(size_t xlim, size_t ylim) {
 
     // TODO: Check if xlim and ylim are >= sqrt(SIZE_MAX/2)
 
-    w->data_size = ( xlim * ylim * 2.0 ) / ( sizeof(world_store) * CHAR_BIT ) + .969;
+    w->cell_count = xlim * ylim;
+    w->data_size = ( w->cell_count * 2.0 ) / ( sizeof(world_store) * CHAR_BIT ) + .969;
 
     w->data = calloc(w->data_size + 1, sizeof(world_store));
     return w;
@@ -51,7 +52,7 @@ void iter_world(world *w, iter_world_func_type itf) {
     wcp.w = w;
 
     for (size_t i = 0; i < w->data_size; i++) {
-        for (int j = CELLS_PER_ELEM-1; j >= 0; j--) {
+        for (int j = CELL_START; j >= 0; j--) {
             cell_mask = SINGLE_CELL_MASK << j*BITS_PER_CELL;
             cell_val = (w->data[i] & cell_mask) >> j*BITS_PER_CELL;
 
@@ -102,105 +103,106 @@ static void _shift_next_state(world *w) {
 static void _calc_next_state(world *w) {
     size_t x = 0, y = 0;
     world_store cell_val, cell_mask, cell_count_val;
-    size_t ci;
-    int cj;
+    size_t i, ci, cc;
+    int j, cj;
 
-    for (size_t i = 0; i < w->data_size; i++) {
-        for (int j = CELLS_PER_ELEM-1; j >= 0; j--) {
+    for (size_t c = 0; c < w->cell_count; c++) {
 #if DEBUG
-            printf("i: %2lu, j: %2d, x: %2lu, y: %2lu, ", i, j, x, y);
+        printf("i: %2lu, j: %2d, x: %2lu, y: %2lu, ", i, j, x, y);
 #endif
-            char cell_count = 0;
+        char cell_count = 0;
+        i = c >> IDX_DIV;
+        j = CELL_START - (c & 0xf);
 
-            // Get surrounding counts for previous, current and next rows
-            for (int dd = -1; dd < 2; dd++) {
-                if ((y == 0 && dd == -1) || (y == w->ylim-1 && dd == 1)) {
-                    continue;
-                }
-                // Current element index (i) and index-in-element (j)
-                ci = ((y+dd)*w->xlim + x) / CELLS_PER_ELEM;
-                cj = CELLS_PER_ELEM - 1 - (((y+dd)*w->xlim + x) % CELLS_PER_ELEM);
+        // Get surrounding counts for previous, current and next rows
+        for (int dd = -1; dd < 2; dd++) {
+            cc = c + (dd * w->xlim);
+            if (cc >= w->cell_count) {
+                continue;
+            }
+            // Current element index (i) and index-in-element (j)
+            ci = cc >> IDX_DIV;
+            cj = CELL_START - (cc & 0xf);
 
 #if DEBUG
-                printf("|%2d ci: %2lu, cj: %2d, (", dd, ci, cj);
+            printf("|%2d ci: %2lu, cj: %2d, (", dd, ci, cj);
 #endif
 
-                if (cj == CELLS_PER_ELEM-1 && ci > 0) {
-                    // First cell in element
+            if (cj == CELL_START && ci > 0) {
+                // First cell in element
 #if DEBUG
-                    putchar('1');
-                    printf(" m: %08x ", cell_mask);
+                putchar('1');
+                printf(" m: %08x ", cell_mask);
 #endif
-                    // Get first 2 cells in current element
-                    // Add last cell of previous element
-                    cell_count_val =
-                        ((w->data[ci] >> (cj-1)*BITS_PER_CELL) |
-                         (w->data[ci-1] << 2*BITS_PER_CELL)) &
-                        MULTI_CELL_MASK;
-                } else if (cj == 0) {
-                    // Last cell in element
+                // Get first 2 cells in current element
+                // Add last cell of previous element
+                cell_count_val =
+                    ((w->data[ci] >> (cj-1)*BITS_PER_CELL) |
+                     (w->data[ci-1] << 2*BITS_PER_CELL)) &
+                    MULTI_CELL_MASK;
+            } else if (cj == 0) {
+                // Last cell in element
 #if DEBUG
-                    putchar('2');
-                    printf(" m: %08x ", cell_mask);
+                putchar('2');
+                printf(" m: %08x ", cell_mask);
 #endif
-                    // Get last 2 cells in current element
-                    // Get first cell of next element
-                    cell_count_val =
-                        ((w->data[ci] << BITS_PER_CELL) |
-                        (w->data[ci+1] >> (CELLS_PER_ELEM-1)*BITS_PER_CELL)) &
-                        MULTI_CELL_MASK;
-                } else {
-                    // Get the surrounding 2 cells
-                    cell_count_val =
-                        (w->data[ci] >> (cj-1)*BITS_PER_CELL) &
-                        MULTI_CELL_MASK;
+                // Get last 2 cells in current element
+                // Get first cell of next element
+                cell_count_val =
+                    ((w->data[ci] << BITS_PER_CELL) |
+                     (w->data[ci+1] >> (CELL_START)*BITS_PER_CELL)) &
+                    MULTI_CELL_MASK;
+            } else {
+                // Get the surrounding 2 cells
+                cell_count_val =
+                    (w->data[ci] >> (cj-1)*BITS_PER_CELL) &
+                    MULTI_CELL_MASK;
 #if DEBUG
-                    putchar('3');
-                    printf(" m: %08x ", cell_mask);
-#endif
-                }
-
-                // Don't take the left cell if the row has started
-                // Don't take the right cell if the row has ended
-                if (x == 0) {
-                    cell_count_val &= 0xf;
-                } else if (x == w->xlim-1) {
-                    cell_count_val &= 0x3c;
-                }
-
-                cell_count += BIT_COUNTS[cell_count_val];
-
-#if DEBUG
-                printf(") %2x %d ", cell_count_val, cell_count);
+                putchar('3');
+                printf(" m: %08x ", cell_mask);
 #endif
             }
 
+            // Don't take the left cell if the row has started
+            // Don't take the right cell if the row has ended
+            if (x == 0) {
+                cell_count_val &= 0xf;
+            } else if (x == w->xlim-1) {
+                cell_count_val &= 0x3c;
+            }
+
+            cell_count += BIT_COUNTS[cell_count_val];
+
 #if DEBUG
-            printf(" %x", w->data[i]);
+            printf(") %2x %d ", cell_count_val, cell_count);
+#endif
+        }
+
+#if DEBUG
+        printf(" %x", w->data[i]);
+        putchar('\n');
+#endif
+
+        cell_mask = NEXT_STATE_MASK << j*BITS_PER_CELL;
+        switch(cell_count) {
+            case 3: cell_val = 1 << j*BITS_PER_CELL; break;
+            case 4: cell_val = (w->data[i] >> 1) & cell_mask; break;
+            default: cell_val = 0; break;
+        }
+        w->data[i] = (w->data[i] & (~cell_mask)) | cell_val;
+#if 0
+        printf("%d:%08x:%x\n", cell_count, cell_mask, cell_val);
+#endif
+
+        x++;
+        if (x >= w->xlim) {
+#if DEBUG || DEBUG2
             putchar('\n');
 #endif
-
-            cell_mask = NEXT_STATE_MASK << j*BITS_PER_CELL;
-            switch(cell_count) {
-                case 3: cell_val = 1 << j*BITS_PER_CELL; break;
-                case 4: cell_val = (w->data[i] >> 1) & cell_mask; break;
-                default: cell_val = 0; break;
-            }
-            w->data[i] = (w->data[i] & (~cell_mask)) | cell_val;
-#if 0
-            printf("%d:%08x:%x\n", cell_count, cell_mask, cell_val);
-#endif
-
-            x++;
-            if (x >= w->xlim) {
-#if DEBUG || DEBUG2
-                putchar('\n');
-#endif
-                x = 0;
-                y++;
-                if (y >= w->ylim) {
-                    break;
-                }
+            x = 0;
+            y++;
+            if (y >= w->ylim) {
+                break;
             }
         }
     }

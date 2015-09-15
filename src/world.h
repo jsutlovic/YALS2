@@ -8,6 +8,8 @@
 
 #define BITS_PER_CELL 2
 #define CELLS_PER_ELEM 16
+#define CELL_START 15
+#define IDX_DIV 4 // log2 16
 #define CURR_CELL_MASK 0xaaaaaaaa
 #define BIT_COUNT_LEN 64 // 2^6
 #define NEXT_STATE_MASK 0x1
@@ -25,6 +27,7 @@ typedef struct world world;
 struct world {
     size_t xlim;
     size_t ylim;
+    size_t cell_count;
     size_t data_size;
     unsigned long generation;
     world_state state;
