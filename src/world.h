@@ -6,19 +6,22 @@
 
 #define PROGRAM_NAME "YALS2"
 
+#define WORLD_STORE_TYPE uint32_t
 #define BITS_PER_CELL 2
 #define CELLS_PER_ELEM 16
-#define CELL_START 15
+#define OFFSET_MASK 0xf
 #define IDX_DIV 4 // log2 16
 #define CURR_CELL_MASK 0xaaaaaaaa
 #define BIT_COUNT_LEN 64 // 2^6
 #define NEXT_STATE_MASK 0x1
 #define SINGLE_CELL_MASK 0x3
 #define MULTI_CELL_MASK 0x3f
+#define START_ROW_MASK 0xf
+#define END_ROW_MASK 0x3c
 
 /*** TYPES ***/
 
-typedef uint32_t world_store;
+typedef WORLD_STORE_TYPE world_store;
 
 enum world_state { CALC=0, SHIFT=1 };
 typedef enum world_state world_state;

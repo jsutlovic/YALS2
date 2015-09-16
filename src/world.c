@@ -54,9 +54,9 @@ void iter_world(world *w, iter_world_func_type itf) {
     wcp.w = w;
 
     for (size_t i = 0; i < w->data_size; i++) {
-        for (int j = CELL_START; j >= 0; j--) {
+        for (int j = 0; j < CELLS_PER_ELEM; j++) {
             cell_mask = SINGLE_CELL_MASK << j*BITS_PER_CELL;
-            cell_val = (w->data[i] & cell_mask) >> j*BITS_PER_CELL;
+            cell_val = (w->data[i] >> j*BITS_PER_CELL) & SINGLE_CELL_MASK;
 
             wcp.x = x;
             wcp.y = y;
@@ -103,90 +103,75 @@ static void _shift_next_state(world *w) {
 }
 
 static void _calc_next_state(world *w) {
-    size_t x = 0, y = 0;
+    size_t x = 0, y = 0, c, cc, i, j, ci, cj;
     world_store cell_val, cell_mask, cell_count_val;
-    char row_cell_count;
+    unsigned char three_cells, row_cell_count;
 
-    for (size_t i = 0; i < w->data_size; i++) {
-        w->temp_calc[i] = 0;
-        for (int j = CELL_START; j >= 0; j--) {
+    i = 0;
+    j = 0;
+    // This contains the current cell and the two cells surrounding it
+    three_cells = w->data[i] & SINGLE_CELL_MASK;
 
-            if (j == CELL_START && i > 0) {
-                // First cell in element
-                // Get first 2 cells in current element
-                // Add last cell of previous element
-                cell_count_val =
-                    ((w->data[i] >> (j-1)*BITS_PER_CELL) |
-                     (w->data[i-1] << 2*BITS_PER_CELL)) &
-                    MULTI_CELL_MASK;
-            } else if (j == 0) {
-                // Last cell in element
-                // Get last 2 cells in current element
-                // Get first cell of next element
-                cell_count_val =
-                    ((w->data[i] << BITS_PER_CELL) |
-                     (w->data[i+1] >> (CELL_START)*BITS_PER_CELL)) &
-                    MULTI_CELL_MASK;
-            } else {
-                // Get the surrounding 2 cells
-                cell_count_val =
-                    (w->data[i] >> (j-1)*BITS_PER_CELL) &
-                    MULTI_CELL_MASK;
-            }
+    for (c = 1; c < w->cell_count+1; ++c) {
+        i = c >> IDX_DIV;
+        j = c & OFFSET_MASK;
+        ci = (c - 1) >> IDX_DIV;
+        cj = (c - 1) & OFFSET_MASK;
 
-            // Don't take the left cell if the row has started
-            // Don't take the right cell if the row has ended
-            if (x == 0) {
-                cell_count_val &= 0xf;
-            } else if (x == w->xlim-1) {
-                cell_count_val &= 0x3c;
-            }
+        three_cells <<= BITS_PER_CELL;
+        three_cells |= (w->data[i] >> j*BITS_PER_CELL) & SINGLE_CELL_MASK;
+        cell_count_val = three_cells & MULTI_CELL_MASK;
 
-            row_cell_count = BIT_COUNTS[cell_count_val];
-            w->temp_calc[i] = w->temp_calc[i] | (row_cell_count << j*BITS_PER_CELL);
+        // Don't take the left cell if the row has started
+        // Don't take the right cell if the row has ended
+        if (x == 0) {
+            cell_count_val &= START_ROW_MASK;
+        } else if (x == w->xlim-1) {
+            cell_count_val &= END_ROW_MASK;
+        }
 
-            x++;
-            if (x >= w->xlim) {
-                x = 0;
-                y++;
-                if (y >= w->ylim) {
-                    break;
-                }
+        row_cell_count = BIT_COUNTS[cell_count_val];
+        w->temp_calc[ci] = (w->temp_calc[ci] & ~(SINGLE_CELL_MASK << cj*BITS_PER_CELL)) | (row_cell_count << cj*BITS_PER_CELL);
+
+        x++;
+        if (x >= w->xlim) {
+            x = 0;
+            y++;
+            if (y >= w->ylim) {
+                break;
             }
         }
     }
 
-    size_t ci, cc;
-    int cj;
     char sum9;
-    for (size_t c = 0; c < w->cell_count; c++) {
+    for (c = 0; c < w->cell_count; ++c) {
         sum9 = 0;
 
         // Previous row
-        if (c > w->xlim) {
+        if (c >= w->xlim) {
             cc = c - w->xlim;
             ci = cc >> IDX_DIV;
-            cj = CELL_START - (cc & 0xf);
-            sum9 += (w->temp_calc[ci] >> cj*BITS_PER_CELL) & SINGLE_CELL_MASK;
+            cj = (cc & OFFSET_MASK) * BITS_PER_CELL;
+            sum9 += (w->temp_calc[ci] >> cj) & SINGLE_CELL_MASK;
         }
 
         // Next row
         cc = c + w->xlim;
         if (cc < w->cell_count) {
             ci = cc >> IDX_DIV;
-            cj = CELL_START - (cc & 0xf);
-            sum9 += (w->temp_calc[ci] >> cj*BITS_PER_CELL) & SINGLE_CELL_MASK;
+            cj = (cc & OFFSET_MASK) * BITS_PER_CELL;
+            sum9 += (w->temp_calc[ci] >> cj) & SINGLE_CELL_MASK;
         }
 
         // Current row
         ci = c >> IDX_DIV;
-        cj = CELL_START - (c & 0xf);
-        sum9 += (w->temp_calc[ci] >> cj*BITS_PER_CELL) & SINGLE_CELL_MASK;
+        cj = (c & OFFSET_MASK) * BITS_PER_CELL;
+        sum9 += (w->temp_calc[ci] >> cj) & SINGLE_CELL_MASK;
 
         // Set cell state
-        cell_mask = NEXT_STATE_MASK << cj*BITS_PER_CELL;
+        cell_mask = NEXT_STATE_MASK << cj;
         switch(sum9) {
-            case 3: cell_val = 1 << cj*BITS_PER_CELL; break;
+            case 3: cell_val = 1 << cj; break;
             case 4: cell_val = (w->data[ci] >> 1) & cell_mask; break;
             default: cell_val = 0; break;
         }

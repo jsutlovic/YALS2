@@ -14,8 +14,8 @@ void main()
 {
     gl_Position = MVP * vec4(position, 0.0, 1.0);
     cell_id = gl_VertexID / 6;
-    data_offset = cell_id / 16;
-    shift = 15 - (cell_id % 16);
+    data_offset = cell_id >> 4;
+    shift = cell_id & 0xf;
     cell_val = int(texelFetch(world_texture_buffer, data_offset).r >> (shift*2)) & 3;
     vert_color = colors[cell_val << inv_state];
 }
