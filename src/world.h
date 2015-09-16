@@ -32,6 +32,7 @@ struct world {
     unsigned long generation;
     world_state state;
     world_store *data;
+    world_store *temp_calc;
 };
 
 typedef struct world_cell_pos world_cell_pos;

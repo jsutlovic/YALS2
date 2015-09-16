@@ -5,7 +5,7 @@
 #define DEBUG 0
 #define DEBUG2 0
 
-static const char DISPLAY_CHARS[4] = { ' ', 'o', '*', 'O' };
+static const char DISPLAY_CHARS[4] = { '.', 'o', '*', 'O' };
 /*
  * Number of set bits in the lowest 3 'even' bit positions.
  * Using a number masked by 0x2a as an index to this array,
@@ -37,11 +37,13 @@ world* init_world(size_t xlim, size_t ylim) {
     w->data_size = ( w->cell_count * 2.0 ) / ( sizeof(world_store) * CHAR_BIT ) + .969;
 
     w->data = calloc(w->data_size + 1, sizeof(world_store));
+    w->temp_calc = calloc(w->data_size + 1, sizeof(world_store));
     return w;
 }
 
 void destroy_world(world *w) {
     free(w->data);
+    free(w->temp_calc);
     free(w);
 }
 
@@ -103,64 +105,33 @@ static void _shift_next_state(world *w) {
 static void _calc_next_state(world *w) {
     size_t x = 0, y = 0;
     world_store cell_val, cell_mask, cell_count_val;
-    size_t i, ci, cc;
-    int j, cj;
+    char row_cell_count;
 
-    for (size_t c = 0; c < w->cell_count; c++) {
-#if DEBUG
-        printf("i: %2lu, j: %2d, x: %2lu, y: %2lu, ", i, j, x, y);
-#endif
-        char cell_count = 0;
-        i = c >> IDX_DIV;
-        j = CELL_START - (c & 0xf);
+    for (size_t i = 0; i < w->data_size; i++) {
+        w->temp_calc[i] = 0;
+        for (int j = CELL_START; j >= 0; j--) {
 
-        // Get surrounding counts for previous, current and next rows
-        for (int dd = -1; dd < 2; dd++) {
-            cc = c + (dd * w->xlim);
-            if (cc >= w->cell_count) {
-                continue;
-            }
-            // Current element index (i) and index-in-element (j)
-            ci = cc >> IDX_DIV;
-            cj = CELL_START - (cc & 0xf);
-
-#if DEBUG
-            printf("|%2d ci: %2lu, cj: %2d, (", dd, ci, cj);
-#endif
-
-            if (cj == CELL_START && ci > 0) {
+            if (j == CELL_START && i > 0) {
                 // First cell in element
-#if DEBUG
-                putchar('1');
-                printf(" m: %08x ", cell_mask);
-#endif
                 // Get first 2 cells in current element
                 // Add last cell of previous element
                 cell_count_val =
-                    ((w->data[ci] >> (cj-1)*BITS_PER_CELL) |
-                     (w->data[ci-1] << 2*BITS_PER_CELL)) &
+                    ((w->data[i] >> (j-1)*BITS_PER_CELL) |
+                     (w->data[i-1] << 2*BITS_PER_CELL)) &
                     MULTI_CELL_MASK;
-            } else if (cj == 0) {
+            } else if (j == 0) {
                 // Last cell in element
-#if DEBUG
-                putchar('2');
-                printf(" m: %08x ", cell_mask);
-#endif
                 // Get last 2 cells in current element
                 // Get first cell of next element
                 cell_count_val =
-                    ((w->data[ci] << BITS_PER_CELL) |
-                     (w->data[ci+1] >> (CELL_START)*BITS_PER_CELL)) &
+                    ((w->data[i] << BITS_PER_CELL) |
+                     (w->data[i+1] >> (CELL_START)*BITS_PER_CELL)) &
                     MULTI_CELL_MASK;
             } else {
                 // Get the surrounding 2 cells
                 cell_count_val =
-                    (w->data[ci] >> (cj-1)*BITS_PER_CELL) &
+                    (w->data[i] >> (j-1)*BITS_PER_CELL) &
                     MULTI_CELL_MASK;
-#if DEBUG
-                putchar('3');
-                printf(" m: %08x ", cell_mask);
-#endif
             }
 
             // Don't take the left cell if the row has started
@@ -171,40 +142,55 @@ static void _calc_next_state(world *w) {
                 cell_count_val &= 0x3c;
             }
 
-            cell_count += BIT_COUNTS[cell_count_val];
+            row_cell_count = BIT_COUNTS[cell_count_val];
+            w->temp_calc[i] = w->temp_calc[i] | (row_cell_count << j*BITS_PER_CELL);
 
-#if DEBUG
-            printf(") %2x %d ", cell_count_val, cell_count);
-#endif
-        }
-
-#if DEBUG
-        printf(" %x", w->data[i]);
-        putchar('\n');
-#endif
-
-        cell_mask = NEXT_STATE_MASK << j*BITS_PER_CELL;
-        switch(cell_count) {
-            case 3: cell_val = 1 << j*BITS_PER_CELL; break;
-            case 4: cell_val = (w->data[i] >> 1) & cell_mask; break;
-            default: cell_val = 0; break;
-        }
-        w->data[i] = (w->data[i] & (~cell_mask)) | cell_val;
-#if 0
-        printf("%d:%08x:%x\n", cell_count, cell_mask, cell_val);
-#endif
-
-        x++;
-        if (x >= w->xlim) {
-#if DEBUG || DEBUG2
-            putchar('\n');
-#endif
-            x = 0;
-            y++;
-            if (y >= w->ylim) {
-                break;
+            x++;
+            if (x >= w->xlim) {
+                x = 0;
+                y++;
+                if (y >= w->ylim) {
+                    break;
+                }
             }
         }
+    }
+
+    size_t ci, cc;
+    int cj;
+    char sum9;
+    for (size_t c = 0; c < w->cell_count; c++) {
+        sum9 = 0;
+
+        // Previous row
+        if (c > w->xlim) {
+            cc = c - w->xlim;
+            ci = cc >> IDX_DIV;
+            cj = CELL_START - (cc & 0xf);
+            sum9 += (w->temp_calc[ci] >> cj*BITS_PER_CELL) & SINGLE_CELL_MASK;
+        }
+
+        // Next row
+        cc = c + w->xlim;
+        if (cc < w->cell_count) {
+            ci = cc >> IDX_DIV;
+            cj = CELL_START - (cc & 0xf);
+            sum9 += (w->temp_calc[ci] >> cj*BITS_PER_CELL) & SINGLE_CELL_MASK;
+        }
+
+        // Current row
+        ci = c >> IDX_DIV;
+        cj = CELL_START - (c & 0xf);
+        sum9 += (w->temp_calc[ci] >> cj*BITS_PER_CELL) & SINGLE_CELL_MASK;
+
+        // Set cell state
+        cell_mask = NEXT_STATE_MASK << cj*BITS_PER_CELL;
+        switch(sum9) {
+            case 3: cell_val = 1 << cj*BITS_PER_CELL; break;
+            case 4: cell_val = (w->data[ci] >> 1) & cell_mask; break;
+            default: cell_val = 0; break;
+        }
+        w->data[ci] = (w->data[ci] & (~cell_mask)) | cell_val;
     }
 
     w->state = SHIFT;
