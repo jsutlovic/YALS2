@@ -103,45 +103,49 @@ static void _shift_next_state(world *w) {
 }
 
 static void _calc_next_state(world *w) {
-    size_t x = 0, y = 0, c, cc, i, j, ci, cj;
+    size_t x, c, cc, i, j, ci, cj;
     world_store cell_val, cell_mask, cell_count_val;
     unsigned char three_cells, row_cell_count;
 
+    x = 0;
     i = 0;
-    j = 0;
     // This contains the current cell and the two cells surrounding it
+    // We start off with the first cell
     three_cells = w->data[i] & SINGLE_CELL_MASK;
 
-    for (c = 1; c < w->cell_count+1; ++c) {
+    for (cc = 0, c = 1; cc < w->cell_count; ++cc, ++c) {
+        // The next cell's index and offset (for reading)
         i = c >> IDX_DIV;
         j = c & OFFSET_MASK;
-        ci = (c - 1) >> IDX_DIV;
-        cj = (c - 1) & OFFSET_MASK;
+        // Current cell's index and offset (for writing)
+        ci = cc >> IDX_DIV;
+        cj = cc & OFFSET_MASK;
 
-        three_cells <<= BITS_PER_CELL;
-        three_cells |= (w->data[i] >> j*BITS_PER_CELL) & SINGLE_CELL_MASK;
+        // Shift the next cell into our cell buffer
+        three_cells = (three_cells << BITS_PER_CELL) |
+            ((w->data[i] >> j*BITS_PER_CELL) & SINGLE_CELL_MASK);
+        // We only care about the current 3 cells
         cell_count_val = three_cells & MULTI_CELL_MASK;
 
-        // Don't take the left cell if the row has started
-        // Don't take the right cell if the row has ended
+        // Don't use the left cell if the row has started
+        // Don't use the right cell if the row has ended
         if (x == 0) {
             cell_count_val &= START_ROW_MASK;
         } else if (x == w->xlim-1) {
             cell_count_val &= END_ROW_MASK;
         }
 
+        // Get the bit count of the three cells
         row_cell_count = BIT_COUNTS[cell_count_val];
         cell_mask = SINGLE_CELL_MASK << cj*BITS_PER_CELL;
+
+        // Set the surrounding cell count to our scratch area
         w->temp_calc[ci] = (w->temp_calc[ci] & ~cell_mask) |
             (row_cell_count << cj*BITS_PER_CELL);
 
-        x++;
+        ++x;
         if (x >= w->xlim) {
             x = 0;
-            y++;
-            if (y >= w->ylim) {
-                break;
-            }
         }
     }
 
@@ -149,7 +153,7 @@ static void _calc_next_state(world *w) {
     for (c = 0; c < w->cell_count; ++c) {
         sum9 = 0;
 
-        // Previous row
+        // Previous row three-count
         if (c >= w->xlim) {
             cc = c - w->xlim;
             ci = cc >> IDX_DIV;
@@ -157,7 +161,7 @@ static void _calc_next_state(world *w) {
             sum9 += (w->temp_calc[ci] >> cj) & SINGLE_CELL_MASK;
         }
 
-        // Next row
+        // Next row three-count
         cc = c + w->xlim;
         if (cc < w->cell_count) {
             ci = cc >> IDX_DIV;
@@ -165,13 +169,14 @@ static void _calc_next_state(world *w) {
             sum9 += (w->temp_calc[ci] >> cj) & SINGLE_CELL_MASK;
         }
 
-        // Current row
+        // Current row three-count
         ci = c >> IDX_DIV;
         cj = (c & OFFSET_MASK) * BITS_PER_CELL;
         sum9 += (w->temp_calc[ci] >> cj) & SINGLE_CELL_MASK;
 
-        // Set cell state
         cell_mask = NEXT_STATE_MASK << cj;
+        // Set cell state based on the current cell and all surrounding
+        // Conway's Life rules
         switch(sum9) {
             case 3: cell_val = 1 << cj; break;
             case 4: cell_val = (w->data[ci] >> 1) & cell_mask; break;
