@@ -6,12 +6,13 @@
 
 #define PROGRAM_NAME "YALS2"
 
-#define WORLD_STORE_TYPE uint32_t
+#define WORLD_STORE_TYPE uint64_t
 #define BITS_PER_CELL 2
-#define CELLS_PER_ELEM 16
-#define OFFSET_MASK 0xf
-#define IDX_DIV 4 // log2 16
-#define CURR_CELL_MASK 0xaaaaaaaa
+#define CELLS_PER_ELEM 32
+#define IDX_DIV 5 // log2 CELLS_PER_ELEM
+#define OFFSET_MASK 0x1f // (1 << IDX_DIV) - 1
+#define CURR_CELL_MASK 0xaaaaaaaaaaaaaaaa
+
 #define BIT_COUNT_LEN 64 // 2^6
 #define NEXT_STATE_MASK 0x1
 #define SINGLE_CELL_MASK 0x3
