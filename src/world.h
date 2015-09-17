@@ -27,7 +27,6 @@ typedef WORLD_STORE_TYPE world_store;
 enum world_state { CALC=0, SHIFT=1 };
 typedef enum world_state world_state;
 
-typedef struct world world;
 struct world {
     size_t xlim;
     size_t ylim;
@@ -38,14 +37,15 @@ struct world {
     world_store *data;
     world_store *temp_calc;
 };
+typedef struct world world;
 
-typedef struct world_cell_pos world_cell_pos;
 struct world_cell_pos {
     world *w;
     size_t x;
     size_t y;
     world_store *cell_val;
 };
+typedef struct world_cell_pos world_cell_pos;
 
 typedef void (*iter_world_func_type) (world_cell_pos *wcp);
 

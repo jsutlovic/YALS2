@@ -29,7 +29,6 @@ enum game_sub_state {
 };
 typedef enum game_sub_state game_sub_state;
 
-typedef struct game game;
 struct game {
     world *w;
     SDL_Window *win;
@@ -40,6 +39,7 @@ struct game {
     game_sub_state sub_state;
     int color_scheme;
 };
+typedef struct game game;
 
 /*** FUNCTIONS ***/
 
