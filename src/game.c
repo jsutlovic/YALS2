@@ -222,9 +222,6 @@ static GLsizei _world_vertices(world *w, GLfloat aspect, GLfloat **v) {
         for (size_t x = 0; x < w->xlim; ++x) {
             GLfloat right = left + csize;
 
-#if DEBUG
-            printf("x: % 3d y: % 3d t: % 4.3f l: % 4.3f b: % 4.3f r: % 4.3f\n", x, y, top, left, bottom, right);
-#endif
 
             (*v)[idx_base+0] = (*v)[idx_base+6] = left; // left
             (*v)[idx_base+1] = (*v)[idx_base+7] = top; // top
@@ -244,9 +241,6 @@ static GLsizei _world_vertices(world *w, GLfloat aspect, GLfloat **v) {
 
         top -= csize + psize;
         left = -(total_size/2.0) + psize;
-#if DEBUG
-        putchar('\n');
-#endif
     }
 
     return vcount;

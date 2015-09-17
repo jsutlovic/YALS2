@@ -2,9 +2,6 @@
 #include <stdio.h>
 #include "world.h"
 
-#define DEBUG 0
-#define DEBUG2 0
-
 static const char DISPLAY_CHARS[4] = { '.', 'o', '*', 'O' };
 /*
  * Number of set bits in the lowest 3 'even' bit positions.
