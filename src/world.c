@@ -52,7 +52,7 @@ void iter_world(world *w, iter_world_func_type itf) {
 
     for (size_t i = 0; i < w->data_size; i++) {
         for (int j = 0; j < CELLS_PER_ELEM; j++) {
-            cell_mask = SINGLE_CELL_MASK << j*BITS_PER_CELL;
+            cell_mask = (world_store) SINGLE_CELL_MASK << j*BITS_PER_CELL;
             cell_val = (w->data[i] >> j*BITS_PER_CELL) & SINGLE_CELL_MASK;
 
             wcp.x = x;
@@ -134,11 +134,11 @@ static void _calc_next_state(world *w) {
 
         // Get the bit count of the three cells
         row_cell_count = BIT_COUNTS[cell_count_val];
-        cell_mask = SINGLE_CELL_MASK << cj*BITS_PER_CELL;
+        cell_mask = (world_store) SINGLE_CELL_MASK << cj*BITS_PER_CELL;
 
         // Set the surrounding cell count to our scratch area
         w->temp_calc[ci] = (w->temp_calc[ci] & ~cell_mask) |
-            (row_cell_count << cj*BITS_PER_CELL);
+            ((world_store) row_cell_count << cj*BITS_PER_CELL);
 
         ++x;
         if (x >= w->xlim) {
@@ -171,11 +171,11 @@ static void _calc_next_state(world *w) {
         cj = (c & OFFSET_MASK) * BITS_PER_CELL;
         sum9 += (w->temp_calc[ci] >> cj) & SINGLE_CELL_MASK;
 
-        cell_mask = NEXT_STATE_MASK << cj;
+        cell_mask = (world_store) NEXT_STATE_MASK << cj;
         // Set cell state based on the current cell and all surrounding
         // Conway's Life rules
         switch(sum9) {
-            case 3: cell_val = 1 << cj; break;
+            case 3: cell_val = (world_store) 1 << cj; break;
             case 4: cell_val = (w->data[ci] >> 1) & cell_mask; break;
             default: cell_val = 0; break;
         }
