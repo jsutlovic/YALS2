@@ -131,7 +131,9 @@ static void _calc_next_state(world *w) {
         }
 
         row_cell_count = BIT_COUNTS[cell_count_val];
-        w->temp_calc[ci] = (w->temp_calc[ci] & ~(SINGLE_CELL_MASK << cj*BITS_PER_CELL)) | (row_cell_count << cj*BITS_PER_CELL);
+        cell_mask = SINGLE_CELL_MASK << cj*BITS_PER_CELL;
+        w->temp_calc[ci] = (w->temp_calc[ci] & ~cell_mask) |
+            (row_cell_count << cj*BITS_PER_CELL);
 
         x++;
         if (x >= w->xlim) {
