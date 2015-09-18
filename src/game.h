@@ -29,6 +29,12 @@ enum game_sub_state {
 };
 typedef enum game_sub_state game_sub_state;
 
+struct surf_coord {
+    int x;
+    int y;
+};
+typedef struct surf_coord surf_coord;
+
 struct overlay {
     GLfloat size;
     mat4x4 *mvp;
@@ -63,6 +69,10 @@ struct overlay {
 
     // Texture IDs
     GLuint tex;
+
+    // Drawing locations
+    surf_coord fps_loc;
+    surf_coord gen_loc;
 };
 typedef struct overlay overlay;
 

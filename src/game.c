@@ -195,6 +195,67 @@ static Uint32 _map_colorscheme(SDL_PixelFormat *format, const float *cols) {
     return SDL_MapRGBA(format, cols[0]*0xff, cols[1]*0xff, cols[2]*0xff, cols[3]*0xff);
 }
 
+static void _overlay_static_text(game *g) {
+    overlay *o = g->o;
+    SDL_Surface *temp_surf;
+    SDL_Rect text_rect;
+
+    SDL_FillRect(o->bg, NULL, o->bg_col);
+    SDL_FillRect(o->font_surf, NULL, o->bg_col);
+
+    // Render static text to overlay surface
+    char *temp_text = calloc(32, sizeof(char));
+    snprintf(temp_text, 32, "World %lux%lu", g->w->xlim, g->w->ylim);
+    temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->fontcol);
+
+    text_rect.x = (o->bg->w / 2) - (temp_surf->w / 2);
+    text_rect.y = temp_surf->h / 2;
+    text_rect.w = temp_surf->w;
+    text_rect.h = temp_surf->h;
+
+    SDL_BlitSurface(temp_surf, NULL, o->bg, &text_rect);
+    free(temp_surf);
+
+    snprintf(temp_text, 32, "World size: %lu", g->w->data_size * sizeof(world_store));
+    temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->fontcol);
+
+    text_rect.x = (o->bg->w / 2) - (temp_surf->w / 2);
+    text_rect.y += temp_surf->h * 1.2;
+    text_rect.w = temp_surf->w;
+    text_rect.h = temp_surf->h;
+
+    SDL_BlitSurface(temp_surf, NULL, o->bg, &text_rect);
+    free(temp_surf);
+
+    snprintf(temp_text, 32, "FPS: ");
+    temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->fontcol);
+
+    o->fps_loc.x = o->bg->w / 2;
+    o->fps_loc.y = temp_surf->h * 6.5; // 5 * 1.2 + 0.5
+
+    text_rect.x = o->fps_loc.x - temp_surf->w;
+    text_rect.y = o->fps_loc.y;
+    text_rect.w = temp_surf->w;
+    text_rect.h = temp_surf->h;
+
+    SDL_BlitSurface(temp_surf, NULL, o->bg, &text_rect);
+    free(temp_surf);
+
+    snprintf(temp_text, 32, "Generation: ");
+    temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->fontcol);
+
+    o->gen_loc.x = o->bg->w / 2;
+    o->gen_loc.y = temp_surf->h * 7.7; // 6 * 1.2 + 0.5
+
+    text_rect.x = o->gen_loc.x - temp_surf->w;
+    text_rect.y = o->gen_loc.y;
+    text_rect.w = temp_surf->w;
+    text_rect.h = temp_surf->h;
+
+    SDL_BlitSurface(temp_surf, NULL, o->bg, &text_rect);
+    free(temp_surf);
+}
+
 static void _init_overlay(game *g) {
     overlay *o = malloc(sizeof(overlay));
     g->o = o;
@@ -310,10 +371,8 @@ static void _init_overlay(game *g) {
         0, font_w * o->max_text + 1, font_h, 32, rmask, gmask, bmask, amask
     );
 
-    SDL_FillRect(o->bg, NULL, o->bg_col);
-    SDL_FillRect(o->font_surf, NULL, o->bg_col);
-
-    // TODO: Render static text to overlay surface
+    // Render static text
+    _overlay_static_text(g);
 
     glGenTextures(1, &o->tex);
     glBindTexture(GL_TEXTURE_2D, o->tex);
@@ -471,6 +530,7 @@ void start_game(game *g) {
 
     // Start game
     Uint32 start_loop = SDL_GetTicks();
+    SDL_Delay(1);
     Uint32 cur_ticks = SDL_GetTicks();
     int fps_upd = 1;
 
@@ -543,26 +603,44 @@ void start_game(game *g) {
             SDL_FillRect(g->o->font_surf, NULL, g->o->bg_col);
             SDL_BlitSurface(temp_font_surf, NULL, g->o->font_surf, NULL);
 
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 100, 100+g->o->font_surf->h, g->o->font_surf->w, g->o->font_surf->h, g->o->tex_format, g->o->tex_type, g->o->font_surf->pixels);
+            glTexSubImage2D(
+                    GL_TEXTURE_2D,
+                    0,
+                    g->o->gen_loc.x,
+                    g->o->gen_loc.y,
+                    g->o->font_surf->w,
+                    g->o->font_surf->h,
+                    g->o->tex_format,
+                    g->o->tex_type,
+                    g->o->font_surf->pixels
+            );
             free(temp_font_surf);
 
             // Render FPS and world generations
             if (fps_upd & 1) {
-                /* printf("cur_ticks: %5u, %4u\n", cur_ticks, cur_ticks/100); */
-                /* printf("count: %lu, ms: %u\n", count, (cur_ticks - start_loop)); */
-                snprintf(g->o->font_text, g->o->max_text + 1, "%8.2f", count / ((cur_ticks - start_loop) / 1000.f));
+                float fps = count / ((cur_ticks - start_loop) / 1000.f);
+                snprintf(g->o->font_text, g->o->max_text + 1, "%8.2f", fps);
                 temp_font_surf = TTF_RenderText_Solid(g->o->font, g->o->font_text, g->o->fontcol);
                 SDL_FillRect(g->o->font_surf, NULL, g->o->bg_col);
                 SDL_BlitSurface(temp_font_surf, NULL, g->o->font_surf, NULL);
 
-                glTexSubImage2D(GL_TEXTURE_2D, 0, 100, 100, g->o->font_surf->w, g->o->font_surf->h, g->o->tex_format, g->o->tex_type, g->o->font_surf->pixels);
+                glTexSubImage2D(
+                        GL_TEXTURE_2D,
+                        0,
+                        g->o->fps_loc.x,
+                        g->o->fps_loc.y,
+                        g->o->font_surf->w,
+                        g->o->font_surf->h,
+                        g->o->tex_format,
+                        g->o->tex_type,
+                        g->o->font_surf->pixels
+                );
                 free(temp_font_surf);
 
                 fps_upd = 0;
             }
 
             if ((cur_ticks / 100) % 5 == 0) {
-                /* printf("OFF cur_ticks: %u\n", cur_ticks / 100); */
                 fps_upd = 2;
             } else {
                 fps_upd >>= 1;
@@ -622,7 +700,7 @@ void start_game(game *g) {
                                  COLOR_SCHEMES[g->color_scheme][2],
                                  COLOR_SCHEMES[g->color_scheme][3]);
                          g->o->bg_col = _map_colorscheme(g->o->bg->format, &COLOR_SCHEMES[g->color_scheme][4]);
-                         SDL_FillRect(g->o->bg, NULL, g->o->bg_col);
+                         _overlay_static_text(g);
                          glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, g->o->bg->w, g->o->bg->h, g->o->tex_format, g->o->tex_type, g->o->bg->pixels);
                          fps_upd = 1;
                          break;
