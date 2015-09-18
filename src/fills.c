@@ -13,7 +13,7 @@ static void _fill2(world_cell_pos *wcp) {
 }
 
 static void _fill3(world_cell_pos *wcp) {
-    *(wcp->cell_val) = (wcp->x + wcp->y) & 3;
+    *(wcp->cell_val) = (wcp->x + wcp->y) & 2;
 }
 
 static void _fill4(world_cell_pos *wcp) {
@@ -47,5 +47,7 @@ void fill(world *w, fill_type fill) {
         default: return;
     }
 
+    w->generation = 0;
+    w->state = CALC;
     iter_world(w, f_it);
 }
