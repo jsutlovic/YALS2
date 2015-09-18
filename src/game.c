@@ -6,6 +6,8 @@
 #define PADDING 1
 #define VSYNC 1
 
+#define GET_COL(idx) &COLOR_SCHEMES[g->color_scheme][idx]
+
 static void _sdl_init(game *g, int win_width, int win_height) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         puts("Failed to initialize SDL");
@@ -191,8 +193,13 @@ game* init_game(size_t xlim, size_t ylim) {
     return g;
 }
 
-static Uint32 _map_colorscheme(SDL_PixelFormat *format, const float *cols) {
+static Uint32 _map_surface_colors(SDL_PixelFormat *format, const float *cols) {
     return SDL_MapRGBA(format, cols[0]*0xff, cols[1]*0xff, cols[2]*0xff, cols[3]*0xff);
+}
+
+static SDL_Color _map_sdl_colors(const float *cols) {
+    SDL_Color col = {cols[0] * 0xff, cols[1] * 0xff, cols[2] * 0xff, cols[3] * 0xff};
+    return col;
 }
 
 static void _overlay_static_text(game *g) {
@@ -206,7 +213,7 @@ static void _overlay_static_text(game *g) {
     // Render static text to overlay surface
     char *temp_text = calloc(32, sizeof(char));
     snprintf(temp_text, 32, "World %lux%lu", g->w->xlim, g->w->ylim);
-    temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->fontcol);
+    temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->font_col);
 
     text_rect.x = (o->bg->w / 2) - (temp_surf->w / 2);
     text_rect.y = temp_surf->h / 2;
@@ -217,7 +224,7 @@ static void _overlay_static_text(game *g) {
     free(temp_surf);
 
     snprintf(temp_text, 32, "World size: %lu", g->w->data_size * sizeof(world_store));
-    temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->fontcol);
+    temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->font_col);
 
     text_rect.x = (o->bg->w / 2) - (temp_surf->w / 2);
     text_rect.y += temp_surf->h * 1.2;
@@ -228,7 +235,7 @@ static void _overlay_static_text(game *g) {
     free(temp_surf);
 
     snprintf(temp_text, 32, "FPS: ");
-    temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->fontcol);
+    temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->font_col);
 
     o->fps_loc.x = o->bg->w / 2;
     o->fps_loc.y = temp_surf->h * 6.5; // 5 * 1.2 + 0.5
@@ -242,7 +249,7 @@ static void _overlay_static_text(game *g) {
     free(temp_surf);
 
     snprintf(temp_text, 32, "Generation: ");
-    temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->fontcol);
+    temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->font_col);
 
     o->gen_loc.x = o->bg->w / 2;
     o->gen_loc.y = temp_surf->h * 7.7; // 6 * 1.2 + 0.5
@@ -256,6 +263,28 @@ static void _overlay_static_text(game *g) {
     free(temp_surf);
 }
 
+static void _update_colors(game *g, int color_scheme) {
+    if (color_scheme >= COLOR_SCHEME_COUNT) {
+        g->color_scheme = 0;
+    } else if (color_scheme < 0) {
+        g->color_scheme = COLOR_SCHEME_COUNT-1;
+    } else {
+        g->color_scheme = color_scheme;
+    }
+
+    glClearColor(
+            COLOR_SCHEMES[g->color_scheme][BG_OFFSET],
+            COLOR_SCHEMES[g->color_scheme][BG_OFFSET + 1],
+            COLOR_SCHEMES[g->color_scheme][BG_OFFSET + 2],
+            COLOR_SCHEMES[g->color_scheme][BG_OFFSET + 3]);
+
+    g->o->bg_col = _map_surface_colors(g->o->bg->format, GET_COL(OVERLAY_OFFSET));
+    g->o->font_col = _map_sdl_colors(GET_COL(FONT_OFFSET));
+
+    _overlay_static_text(g);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, g->o->bg->w, g->o->bg->h, g->o->tex_format, g->o->tex_type, g->o->bg->pixels);
+}
+
 static void _init_overlay(game *g) {
     overlay *o = malloc(sizeof(overlay));
     g->o = o;
@@ -267,10 +296,6 @@ static void _init_overlay(game *g) {
     o->alignment = 4;
 
     // Font values
-    o->fontcol.r = 0xff;
-    o->fontcol.g = 0xff;
-    o->fontcol.b = 0xff;
-    o->fontcol.a = 0xff;
     o->max_text = 8;
 
     // Surface values
@@ -318,7 +343,7 @@ static void _init_overlay(game *g) {
 
     glUseProgram(g->overlay_shader);
     glUniformMatrix4fv(o->matrix_id, 1, GL_FALSE, (GLfloat *) o->mvp);
-    glUniform4fv(o->color_id, 1, &COLOR_SCHEMES[g->color_scheme][4]);
+    glUniform4fv(o->color_id, 1, GET_COL(OVERLAY_OFFSET));
     glUniform1f(o->tex_scale_id, tex_scale);
     glUseProgram(0);
 
@@ -358,11 +383,9 @@ static void _init_overlay(game *g) {
         printf("BLARGH: %s\n", SDL_GetError());
         exit(EXIT_FAILURE);
     }
-    o->bg_col = _map_colorscheme(o->bg->format, &COLOR_SCHEMES[g->color_scheme][4]);
-
     o->font_text[0] = 'W';
     SDL_Surface *temp_surf;
-    temp_surf = TTF_RenderText_Solid(o->font, o->font_text, o->fontcol);
+    temp_surf = TTF_RenderText_Solid(o->font, o->font_text, o->font_col);
     int font_w = temp_surf->w;
     int font_h = temp_surf->h;
     SDL_free(temp_surf);
@@ -372,7 +395,7 @@ static void _init_overlay(game *g) {
     );
 
     // Render static text
-    _overlay_static_text(g);
+    _update_colors(g, g->color_scheme);
 
     glGenTextures(1, &o->tex);
     glBindTexture(GL_TEXTURE_2D, o->tex);
@@ -534,12 +557,6 @@ void start_game(game *g) {
     Uint32 cur_ticks = SDL_GetTicks();
     int fps_upd = 1;
 
-    glClearColor(
-            COLOR_SCHEMES[g->color_scheme][0],
-            COLOR_SCHEMES[g->color_scheme][1],
-            COLOR_SCHEMES[g->color_scheme][2],
-            COLOR_SCHEMES[g->color_scheme][3]);
-
     SDL_Event e;
     int overlay_enabled = 1;
     size_t count = 0;
@@ -551,7 +568,7 @@ void start_game(game *g) {
         glUseProgram(g->world_shader);
 
         glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &MVP[0][0]);
-        glUniform4fv(colors_id, 5, &COLOR_SCHEMES[g->color_scheme][8]);
+        glUniform4fv(colors_id, 5, GET_COL(COLORS_OFFSET));
         glUniform1ui(inv_state_id, !g->w->state);
 
         glBindBuffer(GL_ARRAY_BUFFER, triangle_buffer);
@@ -599,7 +616,7 @@ void start_game(game *g) {
 
             // World generations
             snprintf(g->o->font_text, g->o->max_text + 1, "%8lu", g->w->generation);
-            temp_font_surf = TTF_RenderText_Solid(g->o->font, g->o->font_text, g->o->fontcol);
+            temp_font_surf = TTF_RenderText_Solid(g->o->font, g->o->font_text, g->o->font_col);
             SDL_FillRect(g->o->font_surf, NULL, g->o->bg_col);
             SDL_BlitSurface(temp_font_surf, NULL, g->o->font_surf, NULL);
 
@@ -620,7 +637,7 @@ void start_game(game *g) {
             if (fps_upd & 1) {
                 float fps = count / ((cur_ticks - start_loop) / 1000.f);
                 snprintf(g->o->font_text, g->o->max_text + 1, "%8.2f", fps);
-                temp_font_surf = TTF_RenderText_Solid(g->o->font, g->o->font_text, g->o->fontcol);
+                temp_font_surf = TTF_RenderText_Solid(g->o->font, g->o->font_text, g->o->font_col);
                 SDL_FillRect(g->o->font_surf, NULL, g->o->bg_col);
                 SDL_BlitSurface(temp_font_surf, NULL, g->o->font_surf, NULL);
 
@@ -690,18 +707,11 @@ void start_game(game *g) {
                          g->sub_state = g->sub_state == WHOLE ? HALF : WHOLE;
                          break;
                     case(SDLK_c):
-                         g->color_scheme++;
-                         if (g->color_scheme >= COLOR_SCHEME_COUNT) {
-                             g->color_scheme = 0;
+                         if (e.key.keysym.mod & KMOD_SHIFT) {
+                             _update_colors(g, g->color_scheme - 1);
+                         } else {
+                             _update_colors(g, g->color_scheme + 1);
                          }
-                         glClearColor(
-                                 COLOR_SCHEMES[g->color_scheme][0],
-                                 COLOR_SCHEMES[g->color_scheme][1],
-                                 COLOR_SCHEMES[g->color_scheme][2],
-                                 COLOR_SCHEMES[g->color_scheme][3]);
-                         g->o->bg_col = _map_colorscheme(g->o->bg->format, &COLOR_SCHEMES[g->color_scheme][4]);
-                         _overlay_static_text(g);
-                         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, g->o->bg->w, g->o->bg->h, g->o->tex_format, g->o->tex_type, g->o->bg->pixels);
                          fps_upd = 1;
                          break;
                 }

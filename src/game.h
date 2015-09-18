@@ -52,7 +52,7 @@ struct overlay {
     // Font things
     SDL_Surface *font_surf;
     TTF_Font *font;
-    SDL_Color fontcol;
+    SDL_Color font_col;
     int max_text;
     char *font_text;
 
