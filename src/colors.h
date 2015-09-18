@@ -8,7 +8,7 @@ static const float COLOR_SCHEMES[COLOR_SCHEME_COUNT][COLOR_SCHEME_SIZE] = {
     // Dark: Green and gray/black
     {
         0.015, 0.015, 0.015, 1.0,  // Background
-        0.000, 0.733, 0.000, 0.3,  // Overlay
+        0.266, 0.266, 0.266, 0.6,  // Overlay
         0.031, 0.031, 0.031, 1.0,  // Dead
         1.000, 1.000, 1.000, 1.0,  // Born
         0.266, 0.266, 0.266, 1.0,  // Dying
