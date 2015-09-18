@@ -29,8 +29,46 @@ enum game_sub_state {
 };
 typedef enum game_sub_state game_sub_state;
 
+struct overlay {
+    GLfloat size;
+    mat4x4 *mvp;
+
+    // Overlay surface
+    SDL_Surface *bg;
+
+    // Overlay texture properties
+    Uint32 bg_col;
+    GLenum tex_format;
+    GLenum int_format;
+    GLenum tex_type;
+    int alignment;
+
+    // Font things
+    SDL_Surface *font_surf;
+    TTF_Font *font;
+    SDL_Color fontcol;
+    int max_text;
+    char *font_text;
+
+    // Uniform IDs
+    GLuint color_id;
+    GLuint matrix_id;
+    GLuint tex_scale_id;
+    GLuint tex_coords_id;
+
+    // Buffer IDs
+    GLuint vert_buf;
+    GLuint tex_coord_buf;
+    GLuint el_buf;
+
+    // Texture IDs
+    GLuint tex;
+};
+typedef struct overlay overlay;
+
 struct game {
     world *w;
+    overlay *o;
     SDL_Window *win;
     SDL_GLContext gl_ctx;
     GLint world_shader;
@@ -38,6 +76,7 @@ struct game {
     game_state state;
     game_sub_state sub_state;
     int color_scheme;
+    float aspect;
 };
 typedef struct game game;
 
