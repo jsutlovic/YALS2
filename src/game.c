@@ -7,6 +7,8 @@
 #define VSYNC 1
 
 #define GET_COL(idx) &COLOR_SCHEMES[g->color_scheme][idx]
+#define OVERLAY_PAD 0.5
+#define FONT_SPACING 1.2
 
 static void _sdl_init(game *g, int win_width, int win_height) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -220,7 +222,7 @@ static void _overlay_static_text(game *g) {
     temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->font_col);
 
     text_rect.x = (o->bg->w / 2) - (temp_surf->w / 2);
-    text_rect.y = temp_surf->h / 2;
+    text_rect.y = temp_surf->h * OVERLAY_PAD;
     text_rect.w = temp_surf->w;
     text_rect.h = temp_surf->h;
 
@@ -231,7 +233,7 @@ static void _overlay_static_text(game *g) {
     temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->font_col);
 
     text_rect.x = (o->bg->w / 2) - (temp_surf->w / 2);
-    text_rect.y += temp_surf->h * 1.2;
+    text_rect.y += temp_surf->h * FONT_SPACING;
     text_rect.w = temp_surf->w;
     text_rect.h = temp_surf->h;
 
@@ -242,7 +244,7 @@ static void _overlay_static_text(game *g) {
     temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->font_col);
 
     o->fps_loc.x = o->bg->w / 2;
-    o->fps_loc.y = temp_surf->h * 6.5; // 5 * 1.2 + 0.5
+    o->fps_loc.y = text_rect.y + (temp_surf->h * FONT_SPACING * 4); // 4 lines down
 
     text_rect.x = o->fps_loc.x - temp_surf->w;
     text_rect.y = o->fps_loc.y;
@@ -256,7 +258,7 @@ static void _overlay_static_text(game *g) {
     temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->font_col);
 
     o->gen_loc.x = o->bg->w / 2;
-    o->gen_loc.y = temp_surf->h * 7.7; // 6 * 1.2 + 0.5
+    o->gen_loc.y = text_rect.y + (temp_surf->h * FONT_SPACING); // next line down
 
     text_rect.x = o->gen_loc.x - temp_surf->w;
     text_rect.y = o->gen_loc.y;
