@@ -26,11 +26,11 @@ enum game_state {
 };
 typedef enum game_state game_state;
 
-enum game_sub_state {
+enum game_step {
     WHOLE=0,
     HALF=1,
 };
-typedef enum game_sub_state game_sub_state;
+typedef enum game_step game_step;
 
 struct surf_coord {
     int x;
@@ -89,7 +89,7 @@ struct game {
     GLint world_shader;
     GLint overlay_shader;
     game_state state;
-    game_sub_state sub_state;
+    game_step step;
     int color_scheme;
     float aspect;
 };

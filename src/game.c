@@ -189,7 +189,7 @@ game* init_game(size_t xlim, size_t ylim) {
 
     // Defaults
     g->state = PAUSED;
-    g->sub_state = WHOLE;
+    g->step = WHOLE;
     g->color_scheme = 0;
 
     g->w = init_world(xlim, ylim);
@@ -569,9 +569,9 @@ void start_game(game *g) {
     GLuint world_texture;
     glGenTextures(1, &world_texture);
 
-    g->sub_state = g->sub_state == WHOLE ? HALF : WHOLE;
+    g->step = g->step == WHOLE ? HALF : WHOLE;
     snprintf(g->o->font_text, g->o->max_text + 1, "%8s",
-            GET_STEP_TEXT(g->sub_state));
+            GET_STEP_TEXT(g->step));
     _render_overlay_live_text(g->o, &g->o->step_loc);
 
     // Start game
@@ -701,9 +701,9 @@ void start_game(game *g) {
                          if (g->w->state != CALC) {
                              world_half_step(g->w);
                          }
-                         g->sub_state = g->sub_state == WHOLE ? HALF : WHOLE;
+                         g->step = g->step == WHOLE ? HALF : WHOLE;
                          snprintf(g->o->font_text, g->o->max_text + 1, "%8s",
-                                 GET_STEP_TEXT(g->sub_state));
+                                 GET_STEP_TEXT(g->step));
                          _render_overlay_live_text(g->o, &g->o->step_loc);
                          break;
                     case(SDLK_c):
@@ -729,7 +729,7 @@ void start_game(game *g) {
         // Update the world
         ++count;
         if (g->state == RUNNING) {
-            switch (g->sub_state) {
+            switch (g->step) {
                 case(WHOLE): world_step(g->w); break;
                 case(HALF): world_half_step(g->w); break;
             }
