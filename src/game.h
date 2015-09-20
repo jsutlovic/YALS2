@@ -14,6 +14,9 @@
 #include "fills.h"
 #include "colors.h"
 
+#define GET_STATE_TEXT(state) state == RUNNING ? "Running" : "Paused"
+#define GET_STEP_TEXT(step) step == WHOLE ? "Whole" : "Half"
+
 /*** TYPES ***/
 
 enum game_state {
@@ -73,6 +76,8 @@ struct overlay {
     // Drawing locations
     surf_coord fps_loc;
     surf_coord gen_loc;
+    surf_coord state_loc;
+    surf_coord step_loc;
 };
 typedef struct overlay overlay;
 

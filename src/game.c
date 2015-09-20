@@ -253,7 +253,13 @@ static void _overlay_static_text(game *g) {
     snprintf(temp_text, TEXT_LEN, "Generation: ");
     _overlay_draw_text(o, temp_text, 0, 6, &o->gen_loc);
 
+    // Draw state label
+    snprintf(temp_text, TEXT_LEN, "State: ");
+    _overlay_draw_text(o, temp_text, 0, 7, &o->state_loc);
 
+    // Draw sub state label
+    snprintf(temp_text, TEXT_LEN, "Step: ");
+    _overlay_draw_text(o, temp_text, 0, 8, &o->step_loc);
 }
 
 static void _update_colors(game *g, int color_scheme) {
@@ -276,6 +282,25 @@ static void _update_colors(game *g, int color_scheme) {
 
     _overlay_static_text(g);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, g->o->bg->w, g->o->bg->h, g->o->tex_format, g->o->tex_type, g->o->bg->pixels);
+}
+
+static void _render_overlay_live_text(overlay *o, surf_coord *text_coord) {
+    SDL_Surface *temp_font_surf = TTF_RenderText_Solid(o->font, o->font_text, o->font_col);
+    SDL_FillRect(o->font_surf, NULL, o->bg_col);
+    SDL_BlitSurface(temp_font_surf, NULL, o->font_surf, NULL);
+
+    glTexSubImage2D(
+            GL_TEXTURE_2D,
+            0,
+            text_coord->x,
+            text_coord->y,
+            o->font_surf->w,
+            o->font_surf->h,
+            o->tex_format,
+            o->tex_type,
+            o->font_surf->pixels
+            );
+    free(temp_font_surf);
 }
 
 static void _init_overlay(game *g) {
@@ -544,6 +569,11 @@ void start_game(game *g) {
     GLuint world_texture;
     glGenTextures(1, &world_texture);
 
+    g->sub_state = g->sub_state == WHOLE ? HALF : WHOLE;
+    snprintf(g->o->font_text, g->o->max_text + 1, "%8s",
+            GET_STEP_TEXT(g->sub_state));
+    _render_overlay_live_text(g->o, &g->o->step_loc);
+
     // Start game
     Uint32 start_loop = SDL_GetTicks();
     SDL_Delay(1);
@@ -553,7 +583,6 @@ void start_game(game *g) {
     SDL_Event e;
     int overlay_enabled = 1;
     size_t count = 0;
-    SDL_Surface *temp_font_surf;
 
     while (g->state != ENDED) {
         glClear(GL_COLOR_BUFFER_BIT);
@@ -609,43 +638,18 @@ void start_game(game *g) {
 
             // World generations
             snprintf(g->o->font_text, g->o->max_text + 1, "%8lu", g->w->generation);
-            temp_font_surf = TTF_RenderText_Solid(g->o->font, g->o->font_text, g->o->font_col);
-            SDL_FillRect(g->o->font_surf, NULL, g->o->bg_col);
-            SDL_BlitSurface(temp_font_surf, NULL, g->o->font_surf, NULL);
+            _render_overlay_live_text(g->o, &g->o->gen_loc);
 
-            glTexSubImage2D(
-                    GL_TEXTURE_2D,
-                    0,
-                    g->o->gen_loc.x,
-                    g->o->gen_loc.y,
-                    g->o->font_surf->w,
-                    g->o->font_surf->h,
-                    g->o->tex_format,
-                    g->o->tex_type,
-                    g->o->font_surf->pixels
-            );
-            free(temp_font_surf);
+            // Game state
+            snprintf(g->o->font_text, g->o->max_text + 1, "%8s",
+                    GET_STATE_TEXT(g->state));
+            _render_overlay_live_text(g->o, &g->o->state_loc);
 
             // Render FPS and world generations
             if (fps_upd & 1) {
                 float fps = count / ((cur_ticks - start_loop) / 1000.f);
                 snprintf(g->o->font_text, g->o->max_text + 1, "%8.2f", fps);
-                temp_font_surf = TTF_RenderText_Solid(g->o->font, g->o->font_text, g->o->font_col);
-                SDL_FillRect(g->o->font_surf, NULL, g->o->bg_col);
-                SDL_BlitSurface(temp_font_surf, NULL, g->o->font_surf, NULL);
-
-                glTexSubImage2D(
-                        GL_TEXTURE_2D,
-                        0,
-                        g->o->fps_loc.x,
-                        g->o->fps_loc.y,
-                        g->o->font_surf->w,
-                        g->o->font_surf->h,
-                        g->o->tex_format,
-                        g->o->tex_type,
-                        g->o->font_surf->pixels
-                );
-                free(temp_font_surf);
+                _render_overlay_live_text(g->o, &g->o->fps_loc);
 
                 fps_upd = 0;
             }
@@ -698,6 +702,9 @@ void start_game(game *g) {
                              world_half_step(g->w);
                          }
                          g->sub_state = g->sub_state == WHOLE ? HALF : WHOLE;
+                         snprintf(g->o->font_text, g->o->max_text + 1, "%8s",
+                                 GET_STEP_TEXT(g->sub_state));
+                         _render_overlay_live_text(g->o, &g->o->step_loc);
                          break;
                     case(SDLK_c):
                          if (e.key.keysym.mod & KMOD_SHIFT) {
