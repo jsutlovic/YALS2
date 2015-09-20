@@ -207,7 +207,11 @@ static void _overlay_static_text(game *g) {
     SDL_Surface *temp_surf;
     SDL_Rect text_rect;
 
-    SDL_FillRect(o->bg, NULL, o->bg_col);
+    // Overlay background has a border
+    SDL_FillRect(o->bg, NULL, _map_surface_colors(o->bg->format, GET_COL(BORDER_OFFSET)));
+    SDL_Rect bg_rect = {1, 1, o->bg->w-2, o->bg->h-2};
+    SDL_FillRect(o->bg, &bg_rect, o->bg_col);
+
     SDL_FillRect(o->font_surf, NULL, o->bg_col);
 
     // Render static text to overlay surface
