@@ -205,10 +205,30 @@ static SDL_Color _map_sdl_colors(const float *cols) {
     return col;
 }
 
+static void _overlay_draw_text(overlay *o, char *text, int centered, int line, surf_coord *text_coord) {
+    SDL_Rect text_rect;
+    SDL_Surface *temp_surf = TTF_RenderText_Solid(o->font, text, o->font_col);
+    if (centered == 1) {
+        text_rect.x = (o->bg->w / 2) - (temp_surf->w / 2);
+    } else {
+        text_rect.x = (o->bg->w / 2) - temp_surf->w;
+    }
+    text_rect.y = (OVERLAY_PAD * o->font_surf->h) + (line * FONT_SPACING * o->font_surf->h);
+    text_rect.w = temp_surf->w;
+    text_rect.h = temp_surf->h;
+
+    if (text_coord != NULL) {
+        text_coord->x = o->bg->w / 2;
+        text_coord->y = text_rect.y;
+    }
+
+    SDL_BlitSurface(temp_surf, NULL, o->bg, &text_rect);
+    free(temp_surf);
+}
+
 static void _overlay_static_text(game *g) {
     overlay *o = g->o;
-    SDL_Surface *temp_surf;
-    SDL_Rect text_rect;
+    char *temp_text = calloc(TEXT_LEN, sizeof(char));
 
     // Overlay background has a border
     SDL_FillRect(o->bg, NULL, _map_surface_colors(o->bg->format, GET_COL(BORDER_OFFSET)));
@@ -217,57 +237,23 @@ static void _overlay_static_text(game *g) {
 
     SDL_FillRect(o->font_surf, NULL, o->bg_col);
 
-    // Render static text to overlay surface
-    char *temp_text = calloc(TEXT_LEN, sizeof(char));
+    // Draw world map size
     snprintf(temp_text, TEXT_LEN, "World %lux%lu", g->w->xlim, g->w->ylim);
-    temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->font_col);
+    _overlay_draw_text(o, temp_text, 1, 0, NULL);
 
-    text_rect.x = (o->bg->w / 2) - (temp_surf->w / 2);
-    text_rect.y = temp_surf->h * OVERLAY_PAD;
-    text_rect.w = temp_surf->w;
-    text_rect.h = temp_surf->h;
+    // Draw world data size
+    snprintf(temp_text, TEXT_LEN, "World data size: %lu", g->w->data_size * sizeof(world_store));
+    _overlay_draw_text(o, temp_text, 1, 1, NULL);
 
-    SDL_BlitSurface(temp_surf, NULL, o->bg, &text_rect);
-    free(temp_surf);
-
-    snprintf(temp_text, TEXT_LEN, "World size: %lu", g->w->data_size * sizeof(world_store));
-    temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->font_col);
-
-    text_rect.x = (o->bg->w / 2) - (temp_surf->w / 2);
-    text_rect.y += temp_surf->h * FONT_SPACING;
-    text_rect.w = temp_surf->w;
-    text_rect.h = temp_surf->h;
-
-    SDL_BlitSurface(temp_surf, NULL, o->bg, &text_rect);
-    free(temp_surf);
-
+    // Draw FPS label
     snprintf(temp_text, TEXT_LEN, "FPS: ");
-    temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->font_col);
+    _overlay_draw_text(o, temp_text, 0, 5, &o->fps_loc);
 
-    o->fps_loc.x = o->bg->w / 2;
-    o->fps_loc.y = text_rect.y + (temp_surf->h * FONT_SPACING * 4); // 4 lines down
-
-    text_rect.x = o->fps_loc.x - temp_surf->w;
-    text_rect.y = o->fps_loc.y;
-    text_rect.w = temp_surf->w;
-    text_rect.h = temp_surf->h;
-
-    SDL_BlitSurface(temp_surf, NULL, o->bg, &text_rect);
-    free(temp_surf);
-
+    // Draw generation label
     snprintf(temp_text, TEXT_LEN, "Generation: ");
-    temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->font_col);
+    _overlay_draw_text(o, temp_text, 0, 6, &o->gen_loc);
 
-    o->gen_loc.x = o->bg->w / 2;
-    o->gen_loc.y = text_rect.y + (temp_surf->h * FONT_SPACING); // next line down
 
-    text_rect.x = o->gen_loc.x - temp_surf->w;
-    text_rect.y = o->gen_loc.y;
-    text_rect.w = temp_surf->w;
-    text_rect.h = temp_surf->h;
-
-    SDL_BlitSurface(temp_surf, NULL, o->bg, &text_rect);
-    free(temp_surf);
 }
 
 static void _update_colors(game *g, int color_scheme) {
