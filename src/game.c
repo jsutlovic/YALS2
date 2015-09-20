@@ -7,6 +7,7 @@
 #define VSYNC 1
 
 #define GET_COL(idx) &COLOR_SCHEMES[g->color_scheme][idx]
+#define TEXT_LEN 32
 #define OVERLAY_PAD 0.5
 #define FONT_SPACING 1.2
 
@@ -217,8 +218,8 @@ static void _overlay_static_text(game *g) {
     SDL_FillRect(o->font_surf, NULL, o->bg_col);
 
     // Render static text to overlay surface
-    char *temp_text = calloc(32, sizeof(char));
-    snprintf(temp_text, 32, "World %lux%lu", g->w->xlim, g->w->ylim);
+    char *temp_text = calloc(TEXT_LEN, sizeof(char));
+    snprintf(temp_text, TEXT_LEN, "World %lux%lu", g->w->xlim, g->w->ylim);
     temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->font_col);
 
     text_rect.x = (o->bg->w / 2) - (temp_surf->w / 2);
@@ -229,7 +230,7 @@ static void _overlay_static_text(game *g) {
     SDL_BlitSurface(temp_surf, NULL, o->bg, &text_rect);
     free(temp_surf);
 
-    snprintf(temp_text, 32, "World size: %lu", g->w->data_size * sizeof(world_store));
+    snprintf(temp_text, TEXT_LEN, "World size: %lu", g->w->data_size * sizeof(world_store));
     temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->font_col);
 
     text_rect.x = (o->bg->w / 2) - (temp_surf->w / 2);
@@ -240,7 +241,7 @@ static void _overlay_static_text(game *g) {
     SDL_BlitSurface(temp_surf, NULL, o->bg, &text_rect);
     free(temp_surf);
 
-    snprintf(temp_text, 32, "FPS: ");
+    snprintf(temp_text, TEXT_LEN, "FPS: ");
     temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->font_col);
 
     o->fps_loc.x = o->bg->w / 2;
@@ -254,7 +255,7 @@ static void _overlay_static_text(game *g) {
     SDL_BlitSurface(temp_surf, NULL, o->bg, &text_rect);
     free(temp_surf);
 
-    snprintf(temp_text, 32, "Generation: ");
+    snprintf(temp_text, TEXT_LEN, "Generation: ");
     temp_surf = TTF_RenderText_Solid(o->font, temp_text, o->font_col);
 
     o->gen_loc.x = o->bg->w / 2;
