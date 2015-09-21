@@ -569,11 +569,6 @@ void start_game(game *g) {
     GLuint world_texture;
     glGenTextures(1, &world_texture);
 
-    g->step = g->step == WHOLE ? HALF : WHOLE;
-    snprintf(g->o->font_text, g->o->max_text + 1, "%8s",
-            GET_STEP_TEXT(g->step));
-    _render_overlay_live_text(g->o, &g->o->step_loc);
-
     // Start game
     Uint32 start_loop = SDL_GetTicks();
     SDL_Delay(1);
@@ -645,6 +640,11 @@ void start_game(game *g) {
                     GET_STATE_TEXT(g->state));
             _render_overlay_live_text(g->o, &g->o->state_loc);
 
+            // Game step
+            snprintf(g->o->font_text, g->o->max_text + 1, "%8s",
+                    GET_STEP_TEXT(g->step));
+            _render_overlay_live_text(g->o, &g->o->step_loc);
+
             // Render FPS and world generations
             if (fps_upd & 1) {
                 float fps = count / ((cur_ticks - start_loop) / 1000.f);
@@ -702,9 +702,6 @@ void start_game(game *g) {
                              world_half_step(g->w);
                          }
                          g->step = g->step == WHOLE ? HALF : WHOLE;
-                         snprintf(g->o->font_text, g->o->max_text + 1, "%8s",
-                                 GET_STEP_TEXT(g->step));
-                         _render_overlay_live_text(g->o, &g->o->step_loc);
                          break;
                     case(SDLK_c):
                          if (e.key.keysym.mod & KMOD_SHIFT) {
@@ -719,7 +716,12 @@ void start_game(game *g) {
                 switch(e.key.keysym.sym) {
                     // Start running
                     case(SDLK_n): g->state = RUNNING; break;
-                    case(SDLK_s): if (g->state == PAUSED) { world_half_step(g->w); }; break;
+                    // Single step
+                    case(SDLK_s):
+                        g->state = PAUSED;
+                        world_half_step(g->w);
+                        break;
+
                     // Overlay
                     case(SDLK_TAB): overlay_enabled = 1; break;
                 }
