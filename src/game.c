@@ -446,13 +446,14 @@ void setup_game(game *g, int win_width, int win_height) {
     _init_overlay(g);
 }
 
-static GLsizei _world_vertices(world *w, GLfloat aspect, GLfloat **v) {
+static GLsizei _world_vertices(game *g, GLfloat aspect, GLfloat **v) {
+    world *w = g->w;
     // Triangle has 6 points, each a float
     // Each cell has 2 triangles to make a square
     GLsizei vcount = 2 * VERTS_PER_TRIANGLE * w->xlim * w->ylim;
     *v = SDL_malloc(vcount * sizeof(GLfloat));
 
-    GLfloat ratio, csize, psize;
+    GLfloat ratio;
 
     // Ratio of cell size to padding: 20% (divisor)
     ratio = 1.0 / 0.2;
@@ -474,23 +475,28 @@ static GLsizei _world_vertices(world *w, GLfloat aspect, GLfloat **v) {
 #if PADDING
     // Calculate cell size:
     // 2 is the size of the screen (-1 to 1)
-    // csize is the solution to the equation: (count)x + (count + 1)(x * 0.2)
-    csize = (total_size * ratio) / (ratio * count + (count + 1));
-    // psize is 20% of csize
-    psize = csize / ratio;
+    // cell_size is the solution to the formula: (count)x + (count + 1)(x * 0.2)
+    g->d.cell_size = (total_size * ratio) / (ratio * count + (count + 1));
+    // pad_size is 20% of cell_size
+    g->d.pad_size = g->d.cell_size / ratio;
 #else
-    csize = total_size / count;
-    psize = 0;
+    g->d.cell_size = total_size / count;
+    g->d.pad_size = 0;
 #endif
 
+    g->d.top = 1.0;
+    g->d.left = -(total_size/2);
+    g->d.bottom = w->ylim * g->d.cell_size + (w->ylim + 1) * g->d.pad_size;
+    g->d.right = w->xlim * g->d.cell_size + (w->xlim + 1) * g->d.pad_size;
+
     size_t idx_base = 0;
-    GLfloat top = 1.0 - psize,
-            left = -(total_size/2.0) + psize;
+    GLfloat top = g->d.top - g->d.pad_size,
+            left = g->d.left + g->d.pad_size;
 
     for (size_t y = 0; y < w->ylim; ++y) {
-        GLfloat bottom = top - csize;
+        GLfloat bottom = top - g->d.cell_size;
         for (size_t x = 0; x < w->xlim; ++x) {
-            GLfloat right = left + csize;
+            GLfloat right = left + g->d.cell_size;
 
 
             (*v)[idx_base+0] = (*v)[idx_base+6] = left; // left
@@ -505,12 +511,12 @@ static GLsizei _world_vertices(world *w, GLfloat aspect, GLfloat **v) {
             (*v)[idx_base+10] = right; // right
             (*v)[idx_base+11] = top; // top
 
-            left += csize + psize;
+            left += g->d.cell_size + g->d.pad_size;
             idx_base += 2 * VERTS_PER_TRIANGLE;
         }
 
-        top -= csize + psize;
-        left = -(total_size/2.0) + psize;
+        top -= g->d.cell_size + g->d.pad_size;
+        left = -(total_size/2.0) + g->d.pad_size;
     }
 
     return vcount;
@@ -518,15 +524,15 @@ static GLsizei _world_vertices(world *w, GLfloat aspect, GLfloat **v) {
 
 void start_game(game *g) {
     GLfloat *world_vertices;
-    GLsizei world_vertices_count = _world_vertices(g->w, g->aspect, &world_vertices);
+    GLsizei world_vertices_count = _world_vertices(g, g->aspect, &world_vertices);
 
-    mat4x4 MVP;
+    mat4x4 MVP, Projection, View, Model, temp;
 
 #if ORTHO
     float size = 1.0;
-    mat4x4_ortho(MVP, -(g->aspect * size), g->aspect * size, -size, size, 0, 100);
+    mat4x4_ortho(Projection, -(g->aspect * size), g->aspect * size, -size, size, 0, 100);
+    mat4x4_identity(View);
 #else
-    mat4x4 Projection, View, Model, temp;
 
     vec3 eye    = {-1.8, -1.0, 0.4},
          center = {-0.6, 0.0, 0.0},
@@ -534,10 +540,11 @@ void start_game(game *g) {
 
     mat4x4_perspective(Projection, 45.0f, g->aspect, 0.1f, 100.0f);
     mat4x4_look_at(View, eye, center, up);
+#endif
+
     mat4x4_identity(Model);
     mat4x4_mul(temp, Projection, View);
     mat4x4_mul(MVP, temp, Model);
-#endif
 
     int world_texture_id = 0;
 

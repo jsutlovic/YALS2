@@ -81,9 +81,21 @@ struct overlay {
 };
 typedef struct overlay overlay;
 
+struct world_display {
+    GLfloat top;
+    GLfloat left;
+    GLfloat bottom;
+    GLfloat right;
+
+    GLfloat cell_size;
+    GLfloat pad_size;
+};
+typedef struct world_display world_display;
+
 struct game {
     world *w;
     overlay *o;
+    world_display d;
     SDL_Window *win;
     SDL_GLContext gl_ctx;
     GLint world_shader;
