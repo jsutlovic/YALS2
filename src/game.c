@@ -576,7 +576,7 @@ void start_game(game *g) {
     int fps_upd = 1;
 
     SDL_Event e;
-    int overlay_enabled = 1;
+    int overlay_enabled = 0;
     size_t count = 0;
 
     while (g->state != ENDED) {
