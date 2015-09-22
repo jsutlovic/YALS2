@@ -526,25 +526,25 @@ void start_game(game *g) {
     GLfloat *world_vertices;
     GLsizei world_vertices_count = _world_vertices(g, g->aspect, &world_vertices);
 
-    mat4x4 MVP, Projection, View, Model, temp;
+    mat4x4 Model, temp;
 
 #if ORTHO
     float size = 1.0;
-    mat4x4_ortho(Projection, -(g->aspect * size), g->aspect * size, -size, size, 0, 100);
-    mat4x4_identity(View);
+    mat4x4_ortho(g->d.proj, -(g->aspect * size), g->aspect * size, -size, size, 0, 100);
+    mat4x4_identity(g->d.view);
 #else
 
-    vec3 eye    = {-1.8, -1.0, 0.4},
-         center = {-0.6, 0.0, 0.0},
+    vec3 eye    = {-2.0, -1.44, 0.04},
+         center = {-0.5, 0.0, -1.0},
          up     = {0.0, 0.0, 1.0};
 
-    mat4x4_perspective(Projection, 45.0f, g->aspect, 0.1f, 100.0f);
-    mat4x4_look_at(View, eye, center, up);
+    mat4x4_perspective(g->d.proj, 45.0, g->aspect, 1.0, 1000.0);
+    mat4x4_look_at(g->d.view, eye, center, up);
 #endif
 
     mat4x4_identity(Model);
-    mat4x4_mul(temp, Projection, View);
-    mat4x4_mul(MVP, temp, Model);
+    mat4x4_mul(temp, g->d.proj, g->d.view);
+    mat4x4_mul(g->d.mvp, temp, Model);
 
     int world_texture_id = 0;
 
@@ -591,7 +591,7 @@ void start_game(game *g) {
 
         glUseProgram(g->world_shader);
 
-        glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &MVP[0][0]);
+        glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &g->d.mvp[0][0]);
         glUniform4fv(colors_id, 5, GET_COL(COLORS_OFFSET));
         glUniform1ui(inv_state_id, !g->w->state);
 

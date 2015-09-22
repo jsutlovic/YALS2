@@ -12,7 +12,7 @@ int cell_val;
 
 void main()
 {
-    gl_Position = MVP * vec4(position, 0.0, 1.0);
+    gl_Position = MVP * vec4(position, -1.0, 1.0);
     cell_id = gl_VertexID / 6;
     data_offset = cell_id >> 4;
     shift = cell_id & 0xf;

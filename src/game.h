@@ -89,6 +89,10 @@ struct world_display {
 
     GLfloat cell_size;
     GLfloat pad_size;
+
+    mat4x4 view;
+    mat4x4 proj;
+    mat4x4 mvp;
 };
 typedef struct world_display world_display;
 
