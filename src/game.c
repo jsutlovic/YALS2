@@ -751,6 +751,8 @@ void start_game(game *g) {
                     case(SDLK_5):
                     case(SDLK_6):
                     case(SDLK_7):
+                    case(SDLK_8):
+                    case(SDLK_9):
                         fill(g->w, e.key.keysym.sym - SDLK_0);
                         g->state = PAUSED;
                         break;

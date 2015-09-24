@@ -11,7 +11,7 @@ int main() {
 
     game *g = init_game(160, 100);
     printf("World size: %lu\n", g->w->data_size);
-    fill(g->w, EVEN_IN_WORLD);
+    fill(g->w, EMPTY);
     setup_game(g, 1280, 720);
 
     start_game(g);
