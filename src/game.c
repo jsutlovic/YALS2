@@ -477,17 +477,32 @@ static void _norm_point_to_ray(game *g, Ray *r, float x, float y) {
     memcpy(r, &ray, sizeof(ray));
 }
 
+static inline void _world_coords_to_cell_pos(game *g, world_cell_pos *pos, vec3 coords) {
+    float full_size = g->d.cell_size + g->d.pad_size;
+    float half_pad = g->d.pad_size / 2;
+
+    pos->x = ( coords[0] - half_pad - g->d.left) / full_size;
+    pos->y = (-coords[1] - half_pad + g->d.top) / full_size;
+}
+
 static inline void _handle_mouse_click(game *g, int win_x, int win_y) {
     vec3 mwc, mnc;
+    Ray mouse_ray;
+    world_cell_pos pos;
+    pos.w = g->w;
+    pos.cell_val = NULL;
 
-    printf("Clicked at x: %d, y: %d\n", win_x, win_y);
 
     _norm_mouse_coords(mnc, win_x, win_y, g->win_w, g->win_h);
-    Ray mouse_ray;
     _norm_point_to_ray(g, &mouse_ray, mnc[0], mnc[1]);
     ray_intersection_point(&mwc, mouse_ray, g->d.wp);
+    _world_coords_to_cell_pos(g, &pos, mwc);
+    invert_cell(&pos);
 
-    printf("world x: %.3f, y: %.3f, z: %.3f\n", mwc[0], mwc[1], mwc[2]);
+#if 0
+    printf("Clicked at x: %d, y: %d\n", win_x, win_y);
+    printf("Clicked cell at x: %lu, y: %lu\n", pos.x, pos.y);
+#endif
 }
 
 static GLsizei _world_vertices(game *g, GLfloat aspect, GLfloat **v) {

@@ -55,6 +55,7 @@ world* init_world(size_t xlim, size_t ylim);
 void destroy_world(world *w);
 void print_world(world *w);
 void iter_world(world *w, iter_world_func_type itf);
+void invert_cell(world_cell_pos *p);
 
 void world_half_step(world *w);
 void world_step(world *w);

@@ -44,6 +44,19 @@ void destroy_world(world *w) {
     free(w);
 }
 
+void invert_cell(world_cell_pos *p) {
+    size_t i;
+    int j;
+    size_t cell_idx = (p->y * p->w->xlim) + p->x;
+
+    i = cell_idx >> IDX_DIV;
+    j = cell_idx & OFFSET_MASK;
+
+    world_store cell_mask = (world_store) SINGLE_CELL_MASK << j*BITS_PER_CELL;
+    world_store cell_val = (p->w->data[i] >> j*BITS_PER_CELL) & SINGLE_CELL_MASK;
+    p->w->data[i] = (p->w->data[i] & ~cell_mask) | ((~cell_val << j*BITS_PER_CELL) & cell_mask);
+}
+
 void iter_world(world *w, iter_world_func_type itf) {
     size_t x = 0, y = 0;
     world_store cell_val, cell_mask;
