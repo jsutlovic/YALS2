@@ -11,6 +11,7 @@
 #include "res_path.h"
 #include "world.h"
 #include "linmath.h"
+#include "geom.h"
 #include "fills.h"
 #include "colors.h"
 
@@ -93,6 +94,8 @@ struct world_display {
     mat4x4 view;
     mat4x4 proj;
     mat4x4 mvp;
+
+    Plane wp;
 };
 typedef struct world_display world_display;
 
@@ -108,6 +111,8 @@ struct game {
     game_step step;
     int color_scheme;
     float aspect;
+    int win_w;
+    int win_h;
 };
 typedef struct game game;
 

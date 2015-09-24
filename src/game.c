@@ -74,6 +74,8 @@ static void _sdl_init(game *g, int win_width, int win_height) {
         exit(EXIT_FAILURE);
     }
 
+    g->win_w = win_width;
+    g->win_h = win_height;
     g->aspect = (float) win_width / (float) win_height;
 }
 
@@ -446,6 +448,48 @@ void setup_game(game *g, int win_width, int win_height) {
     _init_overlay(g);
 }
 
+static void _norm_mouse_coords(vec3 coords, int win_x, int win_y, int win_w, int win_h) {
+    coords[0] = ( 2. * win_x) / (float) win_w - 1.;
+    coords[1] = (-2. * win_y) / (float) win_h + 1.;
+    coords[2] = 0.0f;
+}
+
+static void _norm_point_to_ray(game *g, Ray *r, float x, float y) {
+    vec4 near_point_ndc = {x, y, 1, 1};
+    vec4 far_point_ndc = {x, y, -1, 1};
+
+    mat4x4 inv_mvp;
+    mat4x4_invert(inv_mvp, g->d.mvp);
+
+    vec4 near_point_world, far_point_world;
+    mat4x4_mul_vec4(near_point_world, inv_mvp, near_point_ndc);
+    mat4x4_mul_vec4(far_point_world, inv_mvp, far_point_ndc);
+
+    divide_by_w(near_point_world);
+    divide_by_w(far_point_world);
+
+    vec3 between;
+    vec3_sub(between, far_point_world, near_point_world);
+    Ray ray = {
+        {near_point_world[0], near_point_world[1], near_point_world[2]},
+        {between[0], between[1], between[2]}
+    };
+    memcpy(r, &ray, sizeof(ray));
+}
+
+static inline void _handle_mouse_click(game *g, int win_x, int win_y) {
+    vec3 mwc, mnc;
+
+    printf("Clicked at x: %d, y: %d\n", win_x, win_y);
+
+    _norm_mouse_coords(mnc, win_x, win_y, g->win_w, g->win_h);
+    Ray mouse_ray;
+    _norm_point_to_ray(g, &mouse_ray, mnc[0], mnc[1]);
+    ray_intersection_point(&mwc, mouse_ray, g->d.wp);
+
+    printf("world x: %.3f, y: %.3f, z: %.3f\n", mwc[0], mwc[1], mwc[2]);
+}
+
 static GLsizei _world_vertices(game *g, GLfloat aspect, GLfloat **v) {
     world *w = g->w;
     // Triangle has 6 points, each a float
@@ -545,6 +589,12 @@ void start_game(game *g) {
     mat4x4_identity(Model);
     mat4x4_mul(temp, g->d.proj, g->d.view);
     mat4x4_mul(g->d.mvp, temp, Model);
+
+    g->d.wp = (Plane) {{0, 0, -1}, {0, 0, 1}};
+
+    puts("World draw:");
+    printf("top: %.3f, left: %.3f\n", g->d.top, g->d.left);
+    printf("cs: %.3f, ps: %.3f\n", g->d.cell_size, g->d.pad_size);
 
     int world_texture_id = 0;
 
@@ -731,6 +781,13 @@ void start_game(game *g) {
 
                     // Overlay
                     case(SDLK_TAB): overlay_enabled = 1; break;
+                }
+            } else if (e.type == SDL_MOUSEBUTTONUP) {
+                switch (e.button.button) {
+                    case(SDL_BUTTON_LEFT):
+                        g->state = PAUSED;
+                        _handle_mouse_click(g, e.button.x, e.button.y);
+                        break;
                 }
             }
         }
