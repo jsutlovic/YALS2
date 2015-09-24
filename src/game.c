@@ -2,7 +2,7 @@
 
 #define VERTS_PER_TRIANGLE 6
 #define MULTISAMPLE 0
-#define ORTHO 0
+#define ORTHO 1
 #define PADDING 1
 #define VSYNC 1
 
