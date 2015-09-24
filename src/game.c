@@ -492,6 +492,9 @@ static inline void _handle_mouse_click(game *g, int win_x, int win_y) {
     pos.w = g->w;
     pos.cell_val = NULL;
 
+    if (g->w->state == SHIFT) {
+        world_half_step(g->w);
+    }
 
     _norm_mouse_coords(mnc, win_x, win_y, g->win_w, g->win_h);
     _norm_point_to_ray(g, &mouse_ray, mnc[0], mnc[1]);
