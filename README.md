@@ -6,3 +6,12 @@ visuals
 - Compact data storage format
 - Threadsafe data structure
 - Half-step visuals
+
+### Setup
+```bash
+./build.sh Release
+cd build
+make
+make install
+../bin/YALS2
+```
