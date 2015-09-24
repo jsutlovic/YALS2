@@ -607,9 +607,11 @@ void start_game(game *g) {
 
     g->d.wp = (Plane) {{0, 0, -1}, {0, 0, 1}};
 
+#if 0
     puts("World draw:");
     printf("top: %.3f, left: %.3f\n", g->d.top, g->d.left);
     printf("cs: %.3f, ps: %.3f\n", g->d.cell_size, g->d.pad_size);
+#endif
 
     int world_texture_id = 0;
 
