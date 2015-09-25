@@ -500,6 +500,9 @@ static inline void _handle_mouse_click(game *g, int win_x, int win_y) {
     _norm_point_to_ray(g, &mouse_ray, mnc[0], mnc[1]);
     ray_intersection_point(&mwc, mouse_ray, g->d.wp);
     _world_coords_to_cell_pos(g, &pos, mwc);
+    if (pos.x >= g->w->xlim || pos.y >= g->w->ylim) {
+        return;
+    }
     invert_cell(&pos);
 
 #if 0
