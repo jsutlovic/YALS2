@@ -1,6 +1,7 @@
 #ifndef LINMATH_H
 #define LINMATH_H
 
+#include <stdarg.h>
 #include <math.h>
 
 #define LINMATH_H_DEFINE_VEC(n) \
@@ -39,6 +40,14 @@ static inline void vec##n##_norm(vec##n r, vec##n const v) \
 { \
 	float k = 1.0 / vec##n##_len(v); \
 	vec##n##_scale(r, v, k); \
+} \
+static inline void vec##n##_set(vec##n r, ...) { \
+    va_list ap; \
+    int i; \
+    va_start(ap, r); \
+    for (i=0; i<n; ++i) \
+        r[i] = va_arg(ap, double); \
+    va_end(ap); \
 }
 
 LINMATH_H_DEFINE_VEC(2)
