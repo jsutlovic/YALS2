@@ -2,7 +2,6 @@
 
 #define VERTS_PER_TRIANGLE 6
 #define MULTISAMPLE 0
-#define ORTHO 1
 #define PADDING 1
 #define VSYNC 1
 
@@ -193,9 +192,20 @@ game* init_game(size_t xlim, size_t ylim) {
     g->state = PAUSED;
     g->step = WHOLE;
     g->color_scheme = 0;
+    g->d.ortho = 1;
+    g->d.wp = (Plane) {{0, 0, -1}, {0, 0, 1}};
+    g->d.zoom = 1;
+    g->d.zoom_level = 0;
+    g->d.zoom_amount = 1.1;
+
+    g->d.trans_amount = 0.9;
 
     g->w = init_world(xlim, ylim);
     return g;
+}
+
+static inline void _print_vec3(vec3 vec, const char *desc) {
+    printf("%sx: %4.3f, y: %4.3f, z: %4.3f\n", desc == NULL ? "" : desc, vec[0], vec[1], vec[2]);
 }
 
 static Uint32 _map_surface_colors(SDL_PixelFormat *format, const float *cols) {
@@ -587,31 +597,84 @@ static GLsizei _world_vertices(game *g, GLfloat aspect, GLfloat **v) {
     return vcount;
 }
 
+static inline void _setup_camera(game *g) {
+    if (g->d.ortho) {
+        mat4x4_ortho(g->d.proj, -g->aspect, g->aspect, -1, 1, 1, 1000);
+        vec3_set(g->d.eye, 0.0, 0.0, 1.0);
+        vec3_set(g->d.center, 0.0, 0.0, 0.0);
+        vec3_set(g->d.up, 0.0, 1.0, 0.0);
+    } else {
+        mat4x4_perspective(g->d.proj, 45.0, g->aspect, 0.1, 1000.0);
+        vec3_set(g->d.eye, -2.0, -1.44, 1.0);
+        vec3_set(g->d.center, -0.5, 0.0, -1.0);
+        vec3_set(g->d.up, 0.0, 0.0, 1.0);
+    }
+	vec3_sub(g->d.view_f, g->d.center, g->d.eye);
+	vec3_norm(g->d.view_f, g->d.view_f);
+
+	vec3_mul_cross(g->d.view_r, g->d.view_f, g->d.up);
+	vec3_norm(g->d.view_r, g->d.view_r);
+
+	vec3_mul_cross(g->d.view_u, g->d.view_r, g->d.view_f);
+}
+
+static inline void _set_view(game *g) {
+    mat4x4_look_at(g->d.view, g->d.eye, g->d.center, g->d.up);
+}
+
+static inline void _update_translations(game *g) {
+    g->d.trans = g->d.trans_amount * pow(g->d.trans_amount, g->d.zoom_level + 3);
+    printf("trans: %4.3f\n", g->d.trans);
+}
+
+static inline void _calc_zoom(game *g, int dir) {
+    g->d.zoom_level += dir;
+    g->d.zoom = pow(g->d.zoom_amount, g->d.zoom_level);
+    printf("zoom level: %d\n", g->d.zoom_level);
+    _update_translations(g);
+
+    vec3 temp;
+    vec3_scale(temp, g->d.view_f, dir * g->d.trans);
+    vec3_add(g->d.eye, g->d.eye, temp);
+    vec3_add(g->d.center, g->d.center, temp);
+}
+
+static inline void _zoom_view(game *g) {
+    /* mat4x4_scale_aniso(g->d.view, g->d.view, g->d.zoom, g->d.zoom, 1.0); */
+}
+
+static inline void _update_camera(game *g) {
+    _set_view(g);
+    mat4x4_mul(g->d.mvp, g->d.proj, g->d.view);
+}
+
+static inline void _move_camera(game *g, direction d) {
+    vec3 temp;
+    switch (d) {
+        case (UP):
+            vec3_scale(temp, g->d.view_u, g->d.trans);
+            break;
+        case(DOWN):
+            vec3_scale(temp, g->d.view_u, -g->d.trans);
+            break;
+        case(LEFT):
+            vec3_scale(temp, g->d.view_r, -g->d.trans);
+            break;
+        case(RIGHT):
+            vec3_scale(temp, g->d.view_r, g->d.trans);
+            break;
+    }
+    vec3_add(g->d.eye, g->d.eye, temp);
+    vec3_add(g->d.center, g->d.center, temp);
+}
+
 void start_game(game *g) {
     GLfloat *world_vertices;
     GLsizei world_vertices_count = _world_vertices(g, g->aspect, &world_vertices);
 
-    mat4x4 Model, temp;
-
-#if ORTHO
-    float size = 1.0;
-    mat4x4_ortho(g->d.proj, -(g->aspect * size), g->aspect * size, -size, size, 0, 100);
-    mat4x4_identity(g->d.view);
-#else
-
-    vec3 eye    = {-2.0, -1.44, 0.04},
-         center = {-0.5, 0.0, -1.0},
-         up     = {0.0, 0.0, 1.0};
-
-    mat4x4_perspective(g->d.proj, 45.0, g->aspect, 1.0, 1000.0);
-    mat4x4_look_at(g->d.view, eye, center, up);
-#endif
-
-    mat4x4_identity(Model);
-    mat4x4_mul(temp, g->d.proj, g->d.view);
-    mat4x4_mul(g->d.mvp, temp, Model);
-
-    g->d.wp = (Plane) {{0, 0, -1}, {0, 0, 1}};
+    _setup_camera(g);
+    _set_view(g);
+    _update_translations(g);
 
 #if 0
     puts("World draw:");
@@ -744,7 +807,7 @@ void start_game(game *g) {
         SDL_GL_SwapWindow(g->win);
 
         // Events
-        if (SDL_PollEvent(&e)) {
+        while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
                 g->state = ENDED;
             }
@@ -793,29 +856,60 @@ void start_game(game *g) {
                          }
                          fps_upd = 1;
                          break;
+                    case(SDLK_o):
+                         g->d.ortho = !g->d.ortho;
+                         _setup_camera(g);
+                         _set_view(g);
+                         break;
                 }
             } else if (e.type == SDL_KEYDOWN) {
                 switch(e.key.keysym.sym) {
                     // Start running
                     case(SDLK_n): g->state = RUNNING; break;
                     // Single step
-                    case(SDLK_s):
+                    case(SDLK_m):
                         g->state = PAUSED;
                         world_half_step(g->w);
+                        break;
+                    // Translate up
+                    case(SDLK_w):
+                    case(SDLK_UP):
+                        _move_camera(g, UP);
+                        break;
+                    // Translate left
+                    case(SDLK_a):
+                    case(SDLK_LEFT):
+                        _move_camera(g, LEFT);
+                        break;
+                    // Translate up
+                    case(SDLK_s):
+                    case(SDLK_DOWN):
+                        _move_camera(g, DOWN);
+                        break;
+                    // Translate right
+                    case(SDLK_d):
+                    case(SDLK_RIGHT):
+                        _move_camera(g, RIGHT);
                         break;
 
                     // Overlay
                     case(SDLK_TAB): overlay_enabled = 1; break;
                 }
-            } else if (e.type == SDL_MOUSEBUTTONUP) {
+            } else if (e.type == SDL_MOUSEBUTTONDOWN) {
                 switch (e.button.button) {
+                    // Invert cell under cursor
                     case(SDL_BUTTON_LEFT):
                         g->state = PAUSED;
                         _handle_mouse_click(g, e.button.x, e.button.y);
                         break;
                 }
+            } else if (e.type == SDL_MOUSEWHEEL) {
+                _calc_zoom(g, e.wheel.y > 0 ? 1 : -1);
             }
         }
+
+        // Update camera
+        _update_camera(g);
 
         // Update the world
         ++count;

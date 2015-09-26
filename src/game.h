@@ -20,6 +20,14 @@
 
 /*** TYPES ***/
 
+enum direction {
+    UP=0,
+    LEFT,
+    DOWN,
+    RIGHT,
+};
+typedef enum direction direction;
+
 enum game_state {
     PAUSED=0,
     RUNNING=1,
@@ -96,6 +104,24 @@ struct world_display {
     mat4x4 mvp;
 
     Plane wp;
+
+    vec3 eye;
+    vec3 center;
+    vec3 up;
+
+    vec3 view_f;
+    vec3 view_r;
+    vec3 view_u;
+
+    int zoom_level;
+
+    float trans;
+    float trans_amount;
+
+    float zoom;
+    float zoom_amount;
+
+    int ortho;
 };
 typedef struct world_display world_display;
 
