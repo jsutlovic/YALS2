@@ -200,6 +200,10 @@ game* init_game(size_t xlim, size_t ylim) {
 
     g->d.trans_amount = 0.9;
 
+    vec3_set(g->d.eye, 0.0, 0.0, 1.0);
+    vec3_set(g->d.center, 0.0, 0.0, -1.0);
+    vec3_set(g->d.up, 0.0, 1.0, 0.0);
+
     g->w = init_world(xlim, ylim);
     return g;
 }
@@ -597,31 +601,6 @@ static GLsizei _world_vertices(game *g, GLfloat aspect, GLfloat **v) {
     return vcount;
 }
 
-static inline void _setup_camera(game *g) {
-    if (g->d.ortho) {
-        mat4x4_ortho(g->d.proj, -g->aspect, g->aspect, -1, 1, 1, 1000);
-        vec3_set(g->d.eye, 0.0, 0.0, 1.0);
-        vec3_set(g->d.center, 0.0, 0.0, 0.0);
-        vec3_set(g->d.up, 0.0, 1.0, 0.0);
-    } else {
-        mat4x4_perspective(g->d.proj, 45.0, g->aspect, 0.1, 1000.0);
-        vec3_set(g->d.eye, -2.0, -1.44, 1.0);
-        vec3_set(g->d.center, -0.5, 0.0, -1.0);
-        vec3_set(g->d.up, 0.0, 0.0, 1.0);
-    }
-	vec3_sub(g->d.view_f, g->d.center, g->d.eye);
-	vec3_norm(g->d.view_f, g->d.view_f);
-
-	vec3_mul_cross(g->d.view_r, g->d.view_f, g->d.up);
-	vec3_norm(g->d.view_r, g->d.view_r);
-
-	vec3_mul_cross(g->d.view_u, g->d.view_r, g->d.view_f);
-}
-
-static inline void _set_view(game *g) {
-    mat4x4_look_at(g->d.view, g->d.eye, g->d.center, g->d.up);
-}
-
 static inline void _update_translations(game *g) {
     g->d.trans = g->d.trans_amount * pow(g->d.trans_amount, g->d.zoom_level + 3);
     printf("trans: %4.3f\n", g->d.trans);
@@ -629,22 +608,52 @@ static inline void _update_translations(game *g) {
 
 static inline void _calc_zoom(game *g, int dir) {
     g->d.zoom_level += dir;
-    g->d.zoom = pow(g->d.zoom_amount, g->d.zoom_level);
+    g->d.zoom = pow(g->d.zoom_amount, g->d.zoom_level - (g->d.ortho ? 0 : 6));
     printf("zoom level: %d\n", g->d.zoom_level);
     _update_translations(g);
 
-    vec3 temp;
-    vec3_scale(temp, g->d.view_f, dir * g->d.trans);
-    vec3_add(g->d.eye, g->d.eye, temp);
-    vec3_add(g->d.center, g->d.center, temp);
+    float zoom = 1 / g->d.zoom;
+    if (g->d.ortho) {
+        mat4x4_ortho(g->d.proj, -g->aspect * zoom, g->aspect * zoom, -1 * zoom, 1 * zoom, 1, 1000);
+    } else {
+        vec3 temp;
+        memcpy(&g->d.eye_zoom, &g->d.eye, sizeof(g->d.eye_zoom));
+        vec3_scale(temp, g->d.view_f, zoom);
+        vec3_sub(g->d.eye_zoom, g->d.center, temp);
+    }
 }
 
 static inline void _zoom_view(game *g) {
-    /* mat4x4_scale_aniso(g->d.view, g->d.view, g->d.zoom, g->d.zoom, 1.0); */
+    if (!g->d.ortho) {
+        mat4x4_look_at(g->d.view, g->d.eye_zoom, g->d.center, g->d.up);
+    }
+}
+
+static inline void _setup_camera(game *g) {
+    if (g->d.ortho) {
+        mat4x4_ortho(g->d.proj, -g->aspect, g->aspect, -1, 1, 0.001, 1000);
+    } else {
+        mat4x4_perspective(g->d.proj, 45.0, g->aspect, 0.001, 1000.0);
+    }
+
+    vec3_sub(g->d.view_f, g->d.center, g->d.eye);
+    vec3_norm(g->d.view_f, g->d.view_f);
+
+    vec3_mul_cross(g->d.view_r, g->d.view_f, g->d.up);
+    vec3_norm(g->d.view_r, g->d.view_r);
+
+    vec3_mul_cross(g->d.view_u, g->d.view_r, g->d.view_f);
+
+    _calc_zoom(g, 0); // Update zoom for this view type
+}
+
+static inline void _set_view(game *g) {
+    mat4x4_look_at(g->d.view, g->d.eye, g->d.center, g->d.up);
 }
 
 static inline void _update_camera(game *g) {
     _set_view(g);
+    _zoom_view(g);
     mat4x4_mul(g->d.mvp, g->d.proj, g->d.view);
 }
 
@@ -665,6 +674,7 @@ static inline void _move_camera(game *g, direction d) {
             break;
     }
     vec3_add(g->d.eye, g->d.eye, temp);
+    vec3_add(g->d.eye_zoom, g->d.eye_zoom, temp);
     vec3_add(g->d.center, g->d.center, temp);
 }
 
@@ -673,8 +683,7 @@ void start_game(game *g) {
     GLsizei world_vertices_count = _world_vertices(g, g->aspect, &world_vertices);
 
     _setup_camera(g);
-    _set_view(g);
-    _update_translations(g);
+    _update_camera(g);
 
 #if 0
     puts("World draw:");

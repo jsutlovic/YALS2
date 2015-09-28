@@ -109,6 +109,8 @@ struct world_display {
     vec3 center;
     vec3 up;
 
+    vec3 eye_zoom;
+
     vec3 view_f;
     vec3 view_r;
     vec3 view_u;
