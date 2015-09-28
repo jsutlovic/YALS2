@@ -17,7 +17,7 @@ static const float COLOR_SCHEMES[COLOR_SCHEME_COUNT][COLOR_SCHEME_SIZE] = {
         0.015, 0.065, 0.215, 0.7,  // Overlay
         1.000, 1.000, 1.000, 0.6,  // Border
         1.000, 1.000, 1.000, 1.0,  // Font
-        0.031, 0.031, 0.031, 0.0,  // Dead
+        0.031, 0.031, 0.031, 0.1,  // Dead
         1.000, 1.000, 1.000, 1.0,  // Born
         0.266, 0.266, 0.266, 0.8,  // Dying
         0.000, 0.733, 0.000, 1.0,  // Alive

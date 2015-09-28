@@ -599,13 +599,11 @@ static GLsizei _world_vertices(game *g, GLfloat aspect, GLfloat **v) {
 
 static inline void _update_translations(game *g) {
     g->d.trans = g->d.trans_amount * pow(g->d.trans_amount, g->d.zoom_level + 3);
-    printf("trans: %4.3f\n", g->d.trans);
 }
 
 static inline void _calc_zoom(game *g, int dir) {
     g->d.zoom_level += dir;
     g->d.zoom = pow(g->d.zoom_amount, g->d.zoom_level - (g->d.ortho ? 0 : 6));
-    printf("zoom level: %d\n", g->d.zoom_level);
     _update_translations(g);
 
     float zoom = 1 / g->d.zoom;
