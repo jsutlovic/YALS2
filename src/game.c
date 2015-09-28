@@ -200,10 +200,6 @@ game* init_game(size_t xlim, size_t ylim) {
 
     g->d.trans_amount = 0.9;
 
-    vec3_set(g->d.eye, 0.0, 0.0, 1.0);
-    vec3_set(g->d.center, 0.0, 0.0, -1.0);
-    vec3_set(g->d.up, 0.0, 1.0, 0.0);
-
     g->w = init_world(xlim, ylim);
     return g;
 }
@@ -629,6 +625,14 @@ static inline void _zoom_view(game *g) {
     }
 }
 
+static inline void _reset_camera(game *g) {
+    vec3_set(g->d.eye, 0.0, 0.0, 1.0);
+    vec3_set(g->d.center, 0.0, 0.0, -1.0);
+    vec3_set(g->d.up, 0.0, 1.0, 0.0);
+    g->d.zoom_level = 0;
+    _calc_zoom(g, 0);
+}
+
 static inline void _setup_camera(game *g) {
     if (g->d.ortho) {
         mat4x4_ortho(g->d.proj, -g->aspect, g->aspect, -1, 1, 0.001, 1000);
@@ -682,6 +686,7 @@ void start_game(game *g) {
     GLfloat *world_vertices;
     GLsizei world_vertices_count = _world_vertices(g, g->aspect, &world_vertices);
 
+    _reset_camera(g);
     _setup_camera(g);
     _update_camera(g);
 
@@ -848,28 +853,34 @@ void start_game(game *g) {
                     case(SDLK_n): g->state = PAUSED; break;
                     // Toggle running
                     case(SDLK_SPACE):
-                         g->state = g->state == RUNNING ? PAUSED : RUNNING;
-                         break;
-                     // Toggle sub-state
+                        g->state = g->state == RUNNING ? PAUSED : RUNNING;
+                        break;
+                    // Toggle sub-state
                     case(SDLK_h):
-                         if (g->w->state != CALC) {
-                             world_half_step(g->w);
-                         }
-                         g->step = g->step == WHOLE ? HALF : WHOLE;
-                         break;
+                        if (g->w->state != CALC) {
+                            world_half_step(g->w);
+                        }
+                        g->step = g->step == WHOLE ? HALF : WHOLE;
+                        break;
+                    // Change color scheme
                     case(SDLK_c):
-                         if (e.key.keysym.mod & KMOD_SHIFT) {
-                             _update_colors(g, g->color_scheme - 1);
-                         } else {
-                             _update_colors(g, g->color_scheme + 1);
-                         }
-                         fps_upd = 1;
-                         break;
+                        if (e.key.keysym.mod & KMOD_SHIFT) {
+                            _update_colors(g, g->color_scheme - 1);
+                        } else {
+                            _update_colors(g, g->color_scheme + 1);
+                        }
+                        fps_upd = 1;
+                        break;
+                    // Switch projection type
                     case(SDLK_o):
-                         g->d.ortho = !g->d.ortho;
-                         _setup_camera(g);
-                         _set_view(g);
-                         break;
+                        g->d.ortho = !g->d.ortho;
+                        _setup_camera(g);
+                        _set_view(g);
+                        break;
+                    // Reset camera
+                    case(SDLK_r):
+                        _reset_camera(g);
+                        break;
                 }
             } else if (e.type == SDL_KEYDOWN) {
                 switch(e.key.keysym.sym) {
