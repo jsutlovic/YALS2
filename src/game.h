@@ -84,6 +84,7 @@ struct overlay {
     GLuint tex;
 
     // Drawing locations
+    surf_coord avg_fps_loc;
     surf_coord fps_loc;
     surf_coord gen_loc;
     surf_coord state_loc;
@@ -135,7 +136,7 @@ typedef struct world_display world_display;
 
 struct game {
     world *w;
-    overlay *o;
+    overlay o;
     world_display d;
     SDL_Window *win;
     SDL_GLContext gl_ctx;
@@ -148,6 +149,8 @@ struct game {
     int win_w;
     int win_h;
     int vsync;
+    float avg_fps;
+    float fps;
 };
 typedef struct game game;
 

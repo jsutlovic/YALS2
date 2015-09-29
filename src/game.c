@@ -237,7 +237,7 @@ static void _overlay_draw_text(overlay *o, char *text, int centered, int line, s
 }
 
 static void _overlay_static_text(game *g) {
-    overlay *o = g->o;
+    overlay *o = &g->o;
     char *temp_text = calloc(o->label_text_max, sizeof(char));
 
     // Overlay background has a border
@@ -247,29 +247,35 @@ static void _overlay_static_text(game *g) {
 
     SDL_FillRect(o->font_surf, NULL, o->bg_col);
 
+    int line = 0;
+
     // Draw world map size
     snprintf(temp_text, o->label_text_max, "World %lux%lu", g->w->xlim, g->w->ylim);
-    _overlay_draw_text(o, temp_text, 1, 0, NULL);
+    _overlay_draw_text(o, temp_text, 1, line++, NULL);
 
     // Draw world data size
     snprintf(temp_text, o->label_text_max, "World data size: %lu", g->w->data_size * sizeof(world_store));
-    _overlay_draw_text(o, temp_text, 1, 1, NULL);
+    _overlay_draw_text(o, temp_text, 1, line++, NULL);
 
+    line = 5;
     // Draw FPS label
+    snprintf(temp_text, o->label_text_max, "Avg. FPS: ");
+    _overlay_draw_text(o, temp_text, 0, line++, &o->avg_fps_loc);
+
     snprintf(temp_text, o->label_text_max, "FPS: ");
-    _overlay_draw_text(o, temp_text, 0, 5, &o->fps_loc);
+    _overlay_draw_text(o, temp_text, 0, line++, &o->fps_loc);
 
     // Draw generation label
     snprintf(temp_text, o->label_text_max, "Generation: ");
-    _overlay_draw_text(o, temp_text, 0, 6, &o->gen_loc);
+    _overlay_draw_text(o, temp_text, 0, line++, &o->gen_loc);
 
     // Draw state label
     snprintf(temp_text, o->label_text_max, "State: ");
-    _overlay_draw_text(o, temp_text, 0, 7, &o->state_loc);
+    _overlay_draw_text(o, temp_text, 0, line++, &o->state_loc);
 
     // Draw sub state label
     snprintf(temp_text, o->label_text_max, "Step: ");
-    _overlay_draw_text(o, temp_text, 0, 8, &o->step_loc);
+    _overlay_draw_text(o, temp_text, 0, line++, &o->step_loc);
 }
 
 static void _update_colors(game *g, int color_scheme) {
@@ -287,11 +293,11 @@ static void _update_colors(game *g, int color_scheme) {
             COLOR_SCHEMES[g->color_scheme][BG_OFFSET + 2],
             COLOR_SCHEMES[g->color_scheme][BG_OFFSET + 3]);
 
-    g->o->bg_col = _map_surface_colors(g->o->bg->format, GET_COL(OVERLAY_OFFSET));
-    g->o->font_col = _map_sdl_colors(GET_COL(FONT_OFFSET));
+    g->o.bg_col = _map_surface_colors(g->o.bg->format, GET_COL(OVERLAY_OFFSET));
+    g->o.font_col = _map_sdl_colors(GET_COL(FONT_OFFSET));
 
     _overlay_static_text(g);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, g->o->bg->w, g->o->bg->h, g->o->tex_format, g->o->tex_type, g->o->bg->pixels);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, g->o.bg->w, g->o.bg->h, g->o.tex_format, g->o.tex_type, g->o.bg->pixels);
 }
 
 static void _render_overlay_live_text(overlay *o, surf_coord *text_coord) {
@@ -314,8 +320,7 @@ static void _render_overlay_live_text(overlay *o, surf_coord *text_coord) {
 }
 
 static void _init_overlay(game *g) {
-    overlay *o = malloc(sizeof(overlay));
-    g->o = o;
+    overlay *o = &g->o;
 
     // Texture values
     o->tex_format = GL_RGBA;
@@ -441,11 +446,11 @@ static void _init_overlay(game *g) {
 }
 
 static void _destroy_overlay(game *g) {
-    free(g->o->mvp);
-    free(g->o->bg);
-    free(g->o->font_surf);
-    free(g->o->font);
-    free(g->o->font_text);
+    free(g->o.mvp);
+    free(g->o.bg);
+    free(g->o.font_surf);
+    free(g->o.font);
+    free(g->o.font_text);
 }
 
 static void _init_world_display(game *g) {
@@ -676,14 +681,60 @@ static inline void _move_camera(game *g, direction d) {
     vec3_add(g->d.center, g->d.center, temp);
 }
 
+static inline void _render_overlay(game *g) {
+    glUseProgram(g->overlay_shader);
+
+    glBindBuffer(GL_ARRAY_BUFFER, g->o.vert_buf);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g->o.el_buf);
+    glEnableVertexAttribArray(0); // This should be a var
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0); // This should be a var
+
+    glBindBuffer(GL_ARRAY_BUFFER, g->o.tex_coord_buf);
+    glEnableVertexAttribArray(g->o.tex_coords_id);
+    glVertexAttribPointer(g->o.tex_coords_id, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glBindTexture(GL_TEXTURE_2D, g->o.tex);
+    glActiveTexture(GL_TEXTURE0);
+
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
+
+    glDisableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    glUseProgram(0);
+
+    // Average FPS
+    snprintf(g->o.font_text, g->o.update_text_max + 1, "%8.2f", g->avg_fps);
+    _render_overlay_live_text(&g->o, &g->o.avg_fps_loc);
+
+    // Current FPS
+    snprintf(g->o.font_text, g->o.update_text_max + 1, "%8.2f", g->fps);
+    _render_overlay_live_text(&g->o, &g->o.fps_loc);
+
+    // World generations
+    snprintf(g->o.font_text, g->o.update_text_max + 1, "%8lu", g->w->generation);
+    _render_overlay_live_text(&g->o, &g->o.gen_loc);
+
+    // Game state
+    snprintf(g->o.font_text, g->o.update_text_max + 1, "%8s",
+            GET_STATE_TEXT(g->state));
+    _render_overlay_live_text(&g->o, &g->o.state_loc);
+
+    // Game step
+    snprintf(g->o.font_text, g->o.update_text_max + 1, "%8s",
+            GET_STEP_TEXT(g->step));
+    _render_overlay_live_text(&g->o, &g->o.step_loc);
+}
+
 void start_game(game *g) {
     _world_vertices(g);
 
     _reset_camera(g);
     _setup_camera(g);
     _update_camera(g);
-
     int world_texture_id = 0;
+
 
     GLuint matrix_id = glGetUniformLocation(g->world_shader, "MVP");
     GLuint colors_id = glGetUniformLocation(g->world_shader, "colors");
@@ -715,6 +766,7 @@ void start_game(game *g) {
 
     // Start game
     Uint32 start_loop = SDL_GetTicks();
+    Uint32 last_ticks = SDL_GetTicks();
     SDL_Delay(1);
     Uint32 cur_ticks = SDL_GetTicks();
     int fps_upd = 1;
@@ -736,8 +788,8 @@ void start_game(game *g) {
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
-        glActiveTexture(GL_TEXTURE0 + world_texture_id);
         glBindTexture(GL_TEXTURE_BUFFER, world_texture);
+        glActiveTexture(GL_TEXTURE0 + world_texture_id);
         glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, world_data_buffer);
         glUniform1i(world_texture_buffer, world_texture_id);
 
@@ -749,52 +801,14 @@ void start_game(game *g) {
 
         glUseProgram(0);
 
+        last_ticks = cur_ticks;
         cur_ticks = SDL_GetTicks();
 
         if (overlay_enabled) {
-            // Draw overlay
-            glUseProgram(g->overlay_shader);
-
-            glBindBuffer(GL_ARRAY_BUFFER, g->o->vert_buf);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g->o->el_buf);
-            glEnableVertexAttribArray(0); // This should be a var
-            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0); // This should be a var
-
-            glBindBuffer(GL_ARRAY_BUFFER, g->o->tex_coord_buf);
-            glEnableVertexAttribArray(g->o->tex_coords_id);
-            glVertexAttribPointer(g->o->tex_coords_id, 2, GL_FLOAT, GL_FALSE, 0, 0);
-
-            glBindTexture(GL_TEXTURE_2D, g->o->tex);
-            glActiveTexture(GL_TEXTURE0);
-
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
-
-            glDisableVertexAttribArray(0);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-            glUseProgram(0);
-
-            // World generations
-            snprintf(g->o->font_text, g->o->update_text_max + 1, "%8lu", g->w->generation);
-            _render_overlay_live_text(g->o, &g->o->gen_loc);
-
-            // Game state
-            snprintf(g->o->font_text, g->o->update_text_max + 1, "%8s",
-                    GET_STATE_TEXT(g->state));
-            _render_overlay_live_text(g->o, &g->o->state_loc);
-
-            // Game step
-            snprintf(g->o->font_text, g->o->update_text_max + 1, "%8s",
-                    GET_STEP_TEXT(g->step));
-            _render_overlay_live_text(g->o, &g->o->step_loc);
-
             // Render FPS and world generations
             if (fps_upd & 1) {
-                float fps = count / ((cur_ticks - start_loop) / 1000.f);
-                snprintf(g->o->font_text, g->o->update_text_max + 1, "%8.2f", fps);
-                _render_overlay_live_text(g->o, &g->o->fps_loc);
-
+                g->avg_fps = count / ((cur_ticks - start_loop) / 1000.f);
+                g->fps = 1000.0 / (cur_ticks - last_ticks);
                 fps_upd = 0;
             }
 
@@ -803,6 +817,8 @@ void start_game(game *g) {
             } else {
                 fps_upd >>= 1;
             }
+
+            _render_overlay(g);
         }
 
         SDL_GL_SwapWindow(g->win);
@@ -871,7 +887,7 @@ void start_game(game *g) {
                         _set_view(g);
                         break;
                     // Reset camera
-                    case(SDLK_r):
+                    case(SDLK_u):
                         _reset_camera(g);
                         break;
                 }
