@@ -65,13 +65,14 @@ struct overlay {
     SDL_Surface *font_surf;
     TTF_Font *font;
     SDL_Color font_col;
-    int max_text;
+    int label_text_max;
+    int update_text_max;
+    float text_pad;
+    float font_spacing;
     char *font_text;
 
     // Uniform IDs
-    GLuint color_id;
     GLuint matrix_id;
-    GLuint tex_scale_id;
     GLuint tex_coords_id;
 
     // Buffer IDs
@@ -91,6 +92,8 @@ struct overlay {
 typedef struct overlay overlay;
 
 struct world_display {
+    int padding;
+
     GLfloat top;
     GLfloat left;
     GLfloat bottom;
@@ -98,6 +101,9 @@ struct world_display {
 
     GLfloat cell_size;
     GLfloat pad_size;
+
+    GLsizei vcount;
+    GLfloat *vertices;
 
     mat4x4 view;
     mat4x4 proj;
@@ -141,6 +147,7 @@ struct game {
     float aspect;
     int win_w;
     int win_h;
+    int vsync;
 };
 typedef struct game game;
 

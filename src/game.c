@@ -3,12 +3,8 @@
 #define VERTS_PER_TRIANGLE 6
 #define MULTISAMPLE 0
 #define PADDING 1
-#define VSYNC 1
 
 #define GET_COL(idx) &COLOR_SCHEMES[g->color_scheme][idx]
-#define TEXT_LEN 32
-#define OVERLAY_PAD 0.5
-#define FONT_SPACING 1.2
 
 static void _sdl_init(game *g, int win_width, int win_height) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -49,7 +45,7 @@ static void _sdl_init(game *g, int win_width, int win_height) {
 
     SDL_GL_MakeCurrent(g->win, g->gl_ctx);
 
-    SDL_GL_SetSwapInterval(VSYNC);
+    SDL_GL_SetSwapInterval(g->vsync);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -192,7 +188,9 @@ game* init_game(size_t xlim, size_t ylim) {
     g->state = PAUSED;
     g->step = WHOLE;
     g->color_scheme = 0;
+    g->vsync = 1;
     g->d.ortho = 1;
+    g->d.padding = 1;
     g->d.wp = (Plane) {{0, 0, -1}, {0, 0, 1}};
     g->d.zoom = 1;
     g->d.zoom_level = 0;
@@ -225,7 +223,7 @@ static void _overlay_draw_text(overlay *o, char *text, int centered, int line, s
     } else {
         text_rect.x = (o->bg->w / 2) - temp_surf->w;
     }
-    text_rect.y = (OVERLAY_PAD * o->font_surf->h) + (line * FONT_SPACING * o->font_surf->h);
+    text_rect.y = (o->text_pad * o->font_surf->h) + (line * o->font_spacing * o->font_surf->h);
     text_rect.w = temp_surf->w;
     text_rect.h = temp_surf->h;
 
@@ -240,7 +238,7 @@ static void _overlay_draw_text(overlay *o, char *text, int centered, int line, s
 
 static void _overlay_static_text(game *g) {
     overlay *o = g->o;
-    char *temp_text = calloc(TEXT_LEN, sizeof(char));
+    char *temp_text = calloc(o->label_text_max, sizeof(char));
 
     // Overlay background has a border
     SDL_FillRect(o->bg, NULL, _map_surface_colors(o->bg->format, GET_COL(BORDER_OFFSET)));
@@ -250,27 +248,27 @@ static void _overlay_static_text(game *g) {
     SDL_FillRect(o->font_surf, NULL, o->bg_col);
 
     // Draw world map size
-    snprintf(temp_text, TEXT_LEN, "World %lux%lu", g->w->xlim, g->w->ylim);
+    snprintf(temp_text, o->label_text_max, "World %lux%lu", g->w->xlim, g->w->ylim);
     _overlay_draw_text(o, temp_text, 1, 0, NULL);
 
     // Draw world data size
-    snprintf(temp_text, TEXT_LEN, "World data size: %lu", g->w->data_size * sizeof(world_store));
+    snprintf(temp_text, o->label_text_max, "World data size: %lu", g->w->data_size * sizeof(world_store));
     _overlay_draw_text(o, temp_text, 1, 1, NULL);
 
     // Draw FPS label
-    snprintf(temp_text, TEXT_LEN, "FPS: ");
+    snprintf(temp_text, o->label_text_max, "FPS: ");
     _overlay_draw_text(o, temp_text, 0, 5, &o->fps_loc);
 
     // Draw generation label
-    snprintf(temp_text, TEXT_LEN, "Generation: ");
+    snprintf(temp_text, o->label_text_max, "Generation: ");
     _overlay_draw_text(o, temp_text, 0, 6, &o->gen_loc);
 
     // Draw state label
-    snprintf(temp_text, TEXT_LEN, "State: ");
+    snprintf(temp_text, o->label_text_max, "State: ");
     _overlay_draw_text(o, temp_text, 0, 7, &o->state_loc);
 
     // Draw sub state label
-    snprintf(temp_text, TEXT_LEN, "Step: ");
+    snprintf(temp_text, o->label_text_max, "Step: ");
     _overlay_draw_text(o, temp_text, 0, 8, &o->step_loc);
 }
 
@@ -326,7 +324,10 @@ static void _init_overlay(game *g) {
     o->alignment = 4;
 
     // Font values
-    o->max_text = 8;
+    o->update_text_max = 8;
+    o->label_text_max = 32;
+    o->text_pad = 0.5;
+    o->font_spacing = 1.2;
 
     // Surface values
     Uint32 rmask = 0xff000000;
@@ -364,17 +365,11 @@ static void _init_overlay(game *g) {
         1.0, 0.0, // Top right
     };
 
-    float tex_scale = 100.0;
-
-    o->color_id = glGetUniformLocation(g->overlay_shader, "color");
     o->matrix_id = glGetUniformLocation(g->overlay_shader, "MVP");
-    o->tex_scale_id = glGetUniformLocation(g->overlay_shader, "scale");
-    o->tex_coords_id = glGetAttribLocation(g->overlay_shader, "texCoord");
+    o->tex_coords_id = glGetAttribLocation(g->overlay_shader, "tex_coord");
 
     glUseProgram(g->overlay_shader);
     glUniformMatrix4fv(o->matrix_id, 1, GL_FALSE, (GLfloat *) o->mvp);
-    glUniform4fv(o->color_id, 1, GET_COL(OVERLAY_OFFSET));
-    glUniform1f(o->tex_scale_id, tex_scale);
     glUseProgram(0);
 
     glGenBuffers(1, &o->vert_buf);
@@ -404,7 +399,7 @@ static void _init_overlay(game *g) {
     free(res_path);
     free(font_path);
 
-    o->font_text = calloc(o->max_text+1, sizeof(char));
+    o->font_text = calloc(o->update_text_max+1, sizeof(char));
 
     o->bg = SDL_CreateRGBSurface(
         0, overlay_width, overlay_height, 32, rmask, gmask, bmask, amask
@@ -421,7 +416,7 @@ static void _init_overlay(game *g) {
     SDL_free(temp_surf);
 
     o->font_surf = SDL_CreateRGBSurface(
-        0, font_w * o->max_text + 1, font_h, 32, rmask, gmask, bmask, amask
+        0, font_w * o->update_text_max + 1, font_h, 32, rmask, gmask, bmask, amask
     );
 
     // Render static text
@@ -453,9 +448,21 @@ static void _destroy_overlay(game *g) {
     free(g->o->font_text);
 }
 
+static void _init_world_display(game *g) {
+    // Triangle has 6 points, each a float
+    // Each cell has 2 triangles to make a square
+    g->d.vcount = 2 * VERTS_PER_TRIANGLE * g->w->xlim * g->w->ylim;
+    g->d.vertices = SDL_malloc(g->d.vcount * sizeof(GLfloat));
+}
+
+static void _destroy_world_display(game *g) {
+    free(g->d.vertices);
+}
+
 void setup_game(game *g, int win_width, int win_height) {
     _init_gfx(g, win_width, win_height);
     _init_overlay(g);
+    _init_world_display(g);
 }
 
 static void _norm_mouse_coords(vec3 coords, int win_x, int win_y, int win_w, int win_h) {
@@ -514,19 +521,10 @@ static inline void _handle_mouse_click(game *g, int win_x, int win_y) {
         return;
     }
     invert_cell(&pos);
-
-#if 0
-    printf("Clicked at x: %d, y: %d\n", win_x, win_y);
-    printf("Clicked cell at x: %lu, y: %lu\n", pos.x, pos.y);
-#endif
 }
 
-static GLsizei _world_vertices(game *g, GLfloat aspect, GLfloat **v) {
+static void _world_vertices(game *g) {
     world *w = g->w;
-    // Triangle has 6 points, each a float
-    // Each cell has 2 triangles to make a square
-    GLsizei vcount = 2 * VERTS_PER_TRIANGLE * w->xlim * w->ylim;
-    *v = SDL_malloc(vcount * sizeof(GLfloat));
 
     GLfloat ratio;
 
@@ -536,9 +534,9 @@ static GLsizei _world_vertices(game *g, GLfloat aspect, GLfloat **v) {
     size_t count;
     float total_size, world_aspect;
     world_aspect = (float) w->xlim / (float) w->ylim;
-    if (world_aspect >= aspect) {
+    if (world_aspect >= g->aspect) {
         count = w->xlim;
-        total_size = 2 * aspect;
+        total_size = 2 * g->aspect;
     } else if (world_aspect <= 1.0) {
         count = w->ylim;
         total_size = 2.0;
@@ -547,17 +545,17 @@ static GLsizei _world_vertices(game *g, GLfloat aspect, GLfloat **v) {
         total_size = 2.0 * world_aspect;
     }
 
-#if PADDING
-    // Calculate cell size:
-    // 2 is the size of the screen (-1 to 1)
-    // cell_size is the solution to the formula: (count)x + (count + 1)(x * 0.2)
-    g->d.cell_size = (total_size * ratio) / (ratio * count + (count + 1));
-    // pad_size is 20% of cell_size
-    g->d.pad_size = g->d.cell_size / ratio;
-#else
-    g->d.cell_size = total_size / count;
-    g->d.pad_size = 0;
-#endif
+    if (g->d.padding) {
+        // Calculate cell size:
+        // 2 is the size of the screen (-1 to 1)
+        // cell_size is the solution to the formula: (count)x + (count + 1)(x * 0.2)
+        g->d.cell_size = (total_size * ratio) / (ratio * count + (count + 1));
+        // pad_size is 20% of cell_size
+        g->d.pad_size = g->d.cell_size / ratio;
+    } else {
+        g->d.cell_size = total_size / count;
+        g->d.pad_size = 0;
+    }
 
     g->d.top = 1.0;
     g->d.left = -(total_size/2);
@@ -574,17 +572,17 @@ static GLsizei _world_vertices(game *g, GLfloat aspect, GLfloat **v) {
             GLfloat right = left + g->d.cell_size;
 
 
-            (*v)[idx_base+0] = (*v)[idx_base+6] = left; // left
-            (*v)[idx_base+1] = (*v)[idx_base+7] = top; // top
+            g->d.vertices[idx_base+0] = g->d.vertices[idx_base+6] = left; // left
+            g->d.vertices[idx_base+1] = g->d.vertices[idx_base+7] = top; // top
 
-            (*v)[idx_base+2] = left; // left
-            (*v)[idx_base+3] = bottom; // bottom
+            g->d.vertices[idx_base+2] = left; // left
+            g->d.vertices[idx_base+3] = bottom; // bottom
 
-            (*v)[idx_base+4] = (*v)[idx_base+8] = right; // right
-            (*v)[idx_base+5] = (*v)[idx_base+9] = bottom; // bottom
+            g->d.vertices[idx_base+4] = g->d.vertices[idx_base+8] = right; // right
+            g->d.vertices[idx_base+5] = g->d.vertices[idx_base+9] = bottom; // bottom
 
-            (*v)[idx_base+10] = right; // right
-            (*v)[idx_base+11] = top; // top
+            g->d.vertices[idx_base+10] = right; // right
+            g->d.vertices[idx_base+11] = top; // top
 
             left += g->d.cell_size + g->d.pad_size;
             idx_base += 2 * VERTS_PER_TRIANGLE;
@@ -593,8 +591,6 @@ static GLsizei _world_vertices(game *g, GLfloat aspect, GLfloat **v) {
         top -= g->d.cell_size + g->d.pad_size;
         left = -(total_size/2.0) + g->d.pad_size;
     }
-
-    return vcount;
 }
 
 static inline void _update_translations(game *g) {
@@ -681,18 +677,11 @@ static inline void _move_camera(game *g, direction d) {
 }
 
 void start_game(game *g) {
-    GLfloat *world_vertices;
-    GLsizei world_vertices_count = _world_vertices(g, g->aspect, &world_vertices);
+    _world_vertices(g);
 
     _reset_camera(g);
     _setup_camera(g);
     _update_camera(g);
-
-#if 0
-    puts("World draw:");
-    printf("top: %.3f, left: %.3f\n", g->d.top, g->d.left);
-    printf("cs: %.3f, ps: %.3f\n", g->d.cell_size, g->d.pad_size);
-#endif
 
     int world_texture_id = 0;
 
@@ -710,7 +699,7 @@ void start_game(game *g) {
     GLuint triangle_buffer;
     glGenBuffers(1, &triangle_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, triangle_buffer);
-    glBufferData(GL_ARRAY_BUFFER, world_vertices_count*sizeof(GLfloat), world_vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, g->d.vcount*sizeof(GLfloat), g->d.vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     // World data buffer (texture buffer object)
@@ -752,7 +741,7 @@ void start_game(game *g) {
         glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, world_data_buffer);
         glUniform1i(world_texture_buffer, world_texture_id);
 
-        glDrawArrays(GL_TRIANGLES, 0, world_vertices_count / 2);
+        glDrawArrays(GL_TRIANGLES, 0, g->d.vcount / 2);
 
         glDisableVertexAttribArray(0);
         glBindTexture(GL_TEXTURE_BUFFER, 0);
@@ -787,23 +776,23 @@ void start_game(game *g) {
             glUseProgram(0);
 
             // World generations
-            snprintf(g->o->font_text, g->o->max_text + 1, "%8lu", g->w->generation);
+            snprintf(g->o->font_text, g->o->update_text_max + 1, "%8lu", g->w->generation);
             _render_overlay_live_text(g->o, &g->o->gen_loc);
 
             // Game state
-            snprintf(g->o->font_text, g->o->max_text + 1, "%8s",
+            snprintf(g->o->font_text, g->o->update_text_max + 1, "%8s",
                     GET_STATE_TEXT(g->state));
             _render_overlay_live_text(g->o, &g->o->state_loc);
 
             // Game step
-            snprintf(g->o->font_text, g->o->max_text + 1, "%8s",
+            snprintf(g->o->font_text, g->o->update_text_max + 1, "%8s",
                     GET_STEP_TEXT(g->step));
             _render_overlay_live_text(g->o, &g->o->step_loc);
 
             // Render FPS and world generations
             if (fps_upd & 1) {
                 float fps = count / ((cur_ticks - start_loop) / 1000.f);
-                snprintf(g->o->font_text, g->o->max_text + 1, "%8.2f", fps);
+                snprintf(g->o->font_text, g->o->update_text_max + 1, "%8.2f", fps);
                 _render_overlay_live_text(g->o, &g->o->fps_loc);
 
                 fps_upd = 0;
@@ -846,6 +835,12 @@ void start_game(game *g) {
 
                     // Overlay
                     case(SDLK_TAB): overlay_enabled = 0; break;
+
+                    // Toggle vsync
+                    case(SDLK_v):
+                        g->vsync = !g->vsync;
+                        SDL_GL_SetSwapInterval(g->vsync);
+                        break;
 
                     // End running
                     case(SDLK_n): g->state = PAUSED; break;
@@ -947,6 +942,7 @@ void start_game(game *g) {
 void destroy_game(game *g) {
     _destroy_gfx(g);
     _destroy_overlay(g);
+    _destroy_world_display(g);
     free_data_path();
     destroy_world(g->w);
     free(g);
