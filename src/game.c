@@ -681,6 +681,60 @@ static inline void _move_camera(game *g, direction d) {
     vec3_add(g->d.center, g->d.center, temp);
 }
 
+static inline void _setup_world(game *g) {
+    g->d.matrix_id = glGetUniformLocation(g->world_shader, "MVP");
+    g->d.colors_id = glGetUniformLocation(g->world_shader, "colors");
+    g->d.inv_state_id = glGetUniformLocation(g->world_shader, "inv_state");
+    g->d.tex_buff_id = glGetUniformLocation(g->world_shader, "world_texture_buffer");
+    g->d.tex_id = 0;
+
+    // Vertex arrays
+    glGenVertexArrays(1, &g->d.vert_array_id);
+    glBindVertexArray(g->d.vert_array_id);
+
+    // World vertices
+    glGenBuffers(1, &g->d.vert_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, g->d.vert_buffer);
+    glBufferData(GL_ARRAY_BUFFER, g->d.vcount*sizeof(GLfloat), g->d.vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // World data buffer (texture buffer object)
+    glGenBuffers(1, &g->d.data_buffer);
+    glBindBuffer(GL_TEXTURE_BUFFER, g->d.data_buffer);
+    glBufferData(GL_TEXTURE_BUFFER, g->w->data_size*sizeof(world_store), g->w->data, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_TEXTURE_BUFFER, 0);
+
+    // World texture
+    glGenTextures(1, &g->d.data_tex);
+}
+
+static inline void _render_world(game *g) {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(g->world_shader);
+
+    glUniformMatrix4fv(g->d.matrix_id, 1, GL_FALSE, &g->d.mvp[0][0]);
+    glUniform4fv(g->d.colors_id, 5, GET_COL(COLORS_OFFSET));
+    glUniform1ui(g->d.inv_state_id, !g->w->state);
+
+    glBindBuffer(GL_ARRAY_BUFFER, g->d.vert_buffer);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glBindTexture(GL_TEXTURE_BUFFER, g->d.data_tex);
+    glActiveTexture(GL_TEXTURE0 + g->d.tex_id);
+    glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, g->d.data_buffer);
+    glUniform1i(g->d.tex_buff_id, g->d.tex_id);
+
+    glDrawArrays(GL_TRIANGLES, 0, g->d.vcount / 2);
+
+    glDisableVertexAttribArray(0);
+    glBindTexture(GL_TEXTURE_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glUseProgram(0);
+}
+
 static inline void _render_overlay(game *g) {
     glUseProgram(g->overlay_shader);
 
@@ -727,95 +781,162 @@ static inline void _render_overlay(game *g) {
     _render_overlay_live_text(&g->o, &g->o.step_loc);
 }
 
+static inline void _update_world_buffer(game *g) {
+    glBindBuffer(GL_TEXTURE_BUFFER, g->d.data_buffer);
+    glBufferSubData(GL_TEXTURE_BUFFER, 0, g->w->data_size*sizeof(world_store), g->w->data);
+    glBindBuffer(GL_TEXTURE_BUFFER, 0);
+}
+
+static inline void _handle_event(game *g, SDL_Event e) {
+    if (e.type == SDL_QUIT) {
+        g->state = ENDED;
+    }
+    if (e.type == SDL_KEYUP) {
+        switch(e.key.keysym.sym) {
+            // Fills
+            case(SDLK_0):
+            case(SDLK_1):
+            case(SDLK_2):
+            case(SDLK_3):
+            case(SDLK_4):
+            case(SDLK_5):
+            case(SDLK_6):
+            case(SDLK_7):
+            case(SDLK_8):
+            case(SDLK_9):
+                fill(g->w, e.key.keysym.sym - SDLK_0);
+                g->state = PAUSED;
+                break;
+
+            // Quit
+            case(SDLK_ESCAPE):
+            case(SDLK_q): g->state = ENDED; break;
+
+            // Overlay
+            case(SDLK_TAB): g->o.enabled = 0; break;
+
+            // Toggle vsync
+            case(SDLK_v):
+                g->vsync = !g->vsync;
+                SDL_GL_SetSwapInterval(g->vsync);
+                break;
+
+            // End running
+            case(SDLK_n): g->state = PAUSED; break;
+            // Toggle running
+            case(SDLK_SPACE):
+                g->state = g->state == RUNNING ? PAUSED : RUNNING;
+                break;
+            // Toggle sub-state
+            case(SDLK_h):
+                if (g->w->state != CALC) {
+                    world_half_step(g->w);
+                }
+                g->step = g->step == WHOLE ? HALF : WHOLE;
+                break;
+            // Change color scheme
+            case(SDLK_c):
+                if (e.key.keysym.mod & KMOD_SHIFT) {
+                    _update_colors(g, g->color_scheme - 1);
+                } else {
+                    _update_colors(g, g->color_scheme + 1);
+                }
+                g->o.fps_upd = 1;
+                break;
+            // Switch projection type
+            case(SDLK_o):
+                g->d.ortho = !g->d.ortho;
+                _setup_camera(g);
+                _set_view(g);
+                break;
+            // Reset camera
+            case(SDLK_u):
+                _reset_camera(g);
+                break;
+        }
+    } else if (e.type == SDL_KEYDOWN) {
+        switch(e.key.keysym.sym) {
+            // Start running
+            case(SDLK_n): g->state = RUNNING; break;
+            // Single step
+            case(SDLK_m):
+                g->state = PAUSED;
+                world_half_step(g->w);
+                break;
+            // Translate up
+            case(SDLK_w):
+            case(SDLK_UP):
+                _move_camera(g, UP);
+                break;
+            // Translate left
+            case(SDLK_a):
+            case(SDLK_LEFT):
+                _move_camera(g, LEFT);
+                break;
+            // Translate up
+            case(SDLK_s):
+            case(SDLK_DOWN):
+                _move_camera(g, DOWN);
+                break;
+            // Translate right
+            case(SDLK_d):
+            case(SDLK_RIGHT):
+                _move_camera(g, RIGHT);
+                break;
+
+            // Overlay
+            case(SDLK_TAB): g->o.enabled = 1; break;
+        }
+    } else if (e.type == SDL_MOUSEBUTTONDOWN) {
+        switch (e.button.button) {
+            // Invert cell under cursor
+            case(SDL_BUTTON_LEFT):
+                g->state = PAUSED;
+                _handle_mouse_click(g, e.button.x, e.button.y);
+                break;
+        }
+    } else if (e.type == SDL_MOUSEWHEEL) {
+        _calc_zoom(g, e.wheel.y > 0 ? 1 : -1);
+    }
+}
+
 void start_game(game *g) {
     _world_vertices(g);
+    _setup_world(g);
 
     _reset_camera(g);
     _setup_camera(g);
     _update_camera(g);
-    int world_texture_id = 0;
-
-
-    GLuint matrix_id = glGetUniformLocation(g->world_shader, "MVP");
-    GLuint colors_id = glGetUniformLocation(g->world_shader, "colors");
-    GLuint inv_state_id = glGetUniformLocation(g->world_shader, "inv_state");
-    GLuint world_texture_buffer = glGetUniformLocation(g->world_shader, "world_texture_buffer");
-
-    // Vertex arrays
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    // World vertices
-    GLuint triangle_buffer;
-    glGenBuffers(1, &triangle_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, triangle_buffer);
-    glBufferData(GL_ARRAY_BUFFER, g->d.vcount*sizeof(GLfloat), g->d.vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // World data buffer (texture buffer object)
-    GLuint world_data_buffer;
-    glGenBuffers(1, &world_data_buffer);
-    glBindBuffer(GL_TEXTURE_BUFFER, world_data_buffer);
-    glBufferData(GL_TEXTURE_BUFFER, g->w->data_size*sizeof(world_store), g->w->data, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_TEXTURE_BUFFER, 0);
-
-    // World texture
-    GLuint world_texture;
-    glGenTextures(1, &world_texture);
 
     // Start game
     Uint32 start_loop = SDL_GetTicks();
     Uint32 last_ticks = SDL_GetTicks();
     SDL_Delay(1);
     Uint32 cur_ticks = SDL_GetTicks();
-    int fps_upd = 1;
 
     SDL_Event e;
-    int overlay_enabled = 0;
     size_t count = 0;
 
     while (g->state != ENDED) {
-        glClear(GL_COLOR_BUFFER_BIT);
+        _render_world(g);
 
-        glUseProgram(g->world_shader);
-
-        glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &g->d.mvp[0][0]);
-        glUniform4fv(colors_id, 5, GET_COL(COLORS_OFFSET));
-        glUniform1ui(inv_state_id, !g->w->state);
-
-        glBindBuffer(GL_ARRAY_BUFFER, triangle_buffer);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-
-        glBindTexture(GL_TEXTURE_BUFFER, world_texture);
-        glActiveTexture(GL_TEXTURE0 + world_texture_id);
-        glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, world_data_buffer);
-        glUniform1i(world_texture_buffer, world_texture_id);
-
-        glDrawArrays(GL_TRIANGLES, 0, g->d.vcount / 2);
-
-        glDisableVertexAttribArray(0);
-        glBindTexture(GL_TEXTURE_BUFFER, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        glUseProgram(0);
-
+        // Get time since last frame (ms)
         last_ticks = cur_ticks;
         cur_ticks = SDL_GetTicks();
 
-        if (overlay_enabled) {
-            // Render FPS and world generations
-            if (fps_upd & 1) {
+        if (g->o.enabled) {
+            // Calculate average and instant FPS
+            if (g->o.fps_upd & 1) {
                 g->avg_fps = count / ((cur_ticks - start_loop) / 1000.f);
                 g->fps = 1000.0 / (cur_ticks - last_ticks);
-                fps_upd = 0;
+                g->o.fps_upd = 0;
             }
 
+            // Check if we should render FPS (only 2 times per second)
             if ((cur_ticks / 100) % 5 == 0) {
-                fps_upd = 2;
+                g->o.fps_upd = 2;
             } else {
-                fps_upd >>= 1;
+                g->o.fps_upd >>= 1;
             }
 
             _render_overlay(g);
@@ -825,116 +946,7 @@ void start_game(game *g) {
 
         // Events
         while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) {
-                g->state = ENDED;
-            }
-            if (e.type == SDL_KEYUP) {
-                switch(e.key.keysym.sym) {
-                    // Fills
-                    case(SDLK_0):
-                    case(SDLK_1):
-                    case(SDLK_2):
-                    case(SDLK_3):
-                    case(SDLK_4):
-                    case(SDLK_5):
-                    case(SDLK_6):
-                    case(SDLK_7):
-                    case(SDLK_8):
-                    case(SDLK_9):
-                        fill(g->w, e.key.keysym.sym - SDLK_0);
-                        g->state = PAUSED;
-                        break;
-
-                    // Quit
-                    case(SDLK_ESCAPE):
-                    case(SDLK_q): g->state = ENDED; break;
-
-                    // Overlay
-                    case(SDLK_TAB): overlay_enabled = 0; break;
-
-                    // Toggle vsync
-                    case(SDLK_v):
-                        g->vsync = !g->vsync;
-                        SDL_GL_SetSwapInterval(g->vsync);
-                        break;
-
-                    // End running
-                    case(SDLK_n): g->state = PAUSED; break;
-                    // Toggle running
-                    case(SDLK_SPACE):
-                        g->state = g->state == RUNNING ? PAUSED : RUNNING;
-                        break;
-                    // Toggle sub-state
-                    case(SDLK_h):
-                        if (g->w->state != CALC) {
-                            world_half_step(g->w);
-                        }
-                        g->step = g->step == WHOLE ? HALF : WHOLE;
-                        break;
-                    // Change color scheme
-                    case(SDLK_c):
-                        if (e.key.keysym.mod & KMOD_SHIFT) {
-                            _update_colors(g, g->color_scheme - 1);
-                        } else {
-                            _update_colors(g, g->color_scheme + 1);
-                        }
-                        fps_upd = 1;
-                        break;
-                    // Switch projection type
-                    case(SDLK_o):
-                        g->d.ortho = !g->d.ortho;
-                        _setup_camera(g);
-                        _set_view(g);
-                        break;
-                    // Reset camera
-                    case(SDLK_u):
-                        _reset_camera(g);
-                        break;
-                }
-            } else if (e.type == SDL_KEYDOWN) {
-                switch(e.key.keysym.sym) {
-                    // Start running
-                    case(SDLK_n): g->state = RUNNING; break;
-                    // Single step
-                    case(SDLK_m):
-                        g->state = PAUSED;
-                        world_half_step(g->w);
-                        break;
-                    // Translate up
-                    case(SDLK_w):
-                    case(SDLK_UP):
-                        _move_camera(g, UP);
-                        break;
-                    // Translate left
-                    case(SDLK_a):
-                    case(SDLK_LEFT):
-                        _move_camera(g, LEFT);
-                        break;
-                    // Translate up
-                    case(SDLK_s):
-                    case(SDLK_DOWN):
-                        _move_camera(g, DOWN);
-                        break;
-                    // Translate right
-                    case(SDLK_d):
-                    case(SDLK_RIGHT):
-                        _move_camera(g, RIGHT);
-                        break;
-
-                    // Overlay
-                    case(SDLK_TAB): overlay_enabled = 1; break;
-                }
-            } else if (e.type == SDL_MOUSEBUTTONDOWN) {
-                switch (e.button.button) {
-                    // Invert cell under cursor
-                    case(SDL_BUTTON_LEFT):
-                        g->state = PAUSED;
-                        _handle_mouse_click(g, e.button.x, e.button.y);
-                        break;
-                }
-            } else if (e.type == SDL_MOUSEWHEEL) {
-                _calc_zoom(g, e.wheel.y > 0 ? 1 : -1);
-            }
+            _handle_event(g, e);
         }
 
         // Update camera
@@ -949,9 +961,7 @@ void start_game(game *g) {
             }
         }
 
-        glBindBuffer(GL_TEXTURE_BUFFER, world_data_buffer);
-        glBufferSubData(GL_TEXTURE_BUFFER, 0, g->w->data_size*sizeof(world_store), g->w->data);
-        glBindBuffer(GL_TEXTURE_BUFFER, 0);
+        _update_world_buffer(g);
     }
 }
 

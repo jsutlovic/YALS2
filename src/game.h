@@ -48,6 +48,9 @@ struct surf_coord {
 typedef struct surf_coord surf_coord;
 
 struct overlay {
+    int enabled;
+    int fps_upd;
+
     GLfloat size;
     mat4x4 *mvp;
 
@@ -105,6 +108,17 @@ struct world_display {
 
     GLsizei vcount;
     GLfloat *vertices;
+
+    GLuint matrix_id;
+    GLuint colors_id;
+    GLuint inv_state_id;
+    GLuint tex_buff_id;
+    GLuint tex_id;
+
+    GLuint vert_array_id;
+    GLuint vert_buffer;
+    GLuint data_buffer;
+    GLuint data_tex;
 
     mat4x4 view;
     mat4x4 proj;
