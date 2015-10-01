@@ -1,6 +1,6 @@
-#include <limits.h>
-#include <stdio.h>
 #include "world.h"
+
+static const uint16_t MAGIC = 0xf0de;
 
 static const char DISPLAY_CHARS[4] = { '.', 'o', '*', 'O' };
 /*
@@ -31,7 +31,7 @@ world* init_world(size_t xlim, size_t ylim) {
     // TODO: Check if xlim and ylim are >= sqrt(SIZE_MAX/2)
 
     w->cell_count = xlim * ylim;
-    w->data_size = ( w->cell_count * 2.0 ) / ( sizeof(world_store) * CHAR_BIT ) + .969;
+    w->data_size = ( w->cell_count * (float) BITS_PER_CELL ) / ( sizeof(world_store) * CHAR_BIT ) + .969;
 
     w->data = calloc(w->data_size + 1, sizeof(world_store));
     w->temp_calc = calloc(w->data_size + 1, sizeof(world_store));
@@ -95,12 +95,58 @@ static void _print_world_it(world_cell_pos *wcp) {
 }
 
 void print_world(world *w) {
-    printf("World %lux%lu, state: %s, gen %lu:\n",
+    printf("World %ux%u, state: %s, gen %u:\n",
             w->xlim,
             w->ylim,
             w->state ? "SHIFT" : "CALC",
             w->generation);
     iter_world(w, _print_world_it);
+}
+
+
+/*
+ * World into byte stream
+ *   - begin stream magic number
+ *   - xlim, ylim
+ *   - generation
+ *   - state
+ *   - world_data
+ */
+char *serialize_world(world *w, size_t *len) {
+    size_t out_size =
+        sizeof(MAGIC) +
+        sizeof(uint32_t) +
+        sizeof(uint32_t) +
+        sizeof(uint32_t) +
+        sizeof(uint16_t) +
+        (w->data_size * sizeof(world_store));
+
+    size_t offset = 0;
+    char *s_w = calloc(out_size, sizeof(char));
+
+    _ser_uint16(s_w, offset, MAGIC);
+    offset += sizeof(MAGIC);
+
+    _ser_uint32(s_w, offset, w->xlim);
+    offset += sizeof(uint32_t);
+
+    _ser_uint32(s_w, offset, w->ylim);
+    offset += sizeof(uint32_t);
+
+    _ser_uint32(s_w, offset, w->generation);
+    offset += sizeof(uint32_t);
+
+    _ser_uint16(s_w, offset, (uint16_t) w->state);
+    offset += sizeof(uint16_t);
+
+    for (size_t i = 0; i < w->data_size; ++i) {
+        _ser_uint32(s_w, offset, w->data[i]);
+        offset += sizeof(uint32_t);
+    }
+
+    *len = out_size;
+
+    return s_w;
 }
 
 static void _shift_next_state(world *w) {

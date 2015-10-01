@@ -250,7 +250,7 @@ static void _overlay_static_text(game *g) {
     int line = 0;
 
     // Draw world map size
-    snprintf(temp_text, o->label_text_max, "World %lux%lu", g->w->xlim, g->w->ylim);
+    snprintf(temp_text, o->label_text_max, "World %ux%u", g->w->xlim, g->w->ylim);
     _overlay_draw_text(o, temp_text, 1, line++, NULL);
 
     // Draw world data size
@@ -767,7 +767,7 @@ static inline void _render_overlay(game *g) {
     _render_overlay_live_text(&g->o, &g->o.fps_loc);
 
     // World generations
-    snprintf(g->o.font_text, g->o.update_text_max + 1, "%8lu", g->w->generation);
+    snprintf(g->o.font_text, g->o.update_text_max + 1, "%8u", g->w->generation);
     _render_overlay_live_text(&g->o, &g->o.gen_loc);
 
     // Game state

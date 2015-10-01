@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <limits.h>
+#include "serialization.h"
 
 #define PROGRAM_NAME "YALS2"
 
@@ -28,11 +31,11 @@ enum world_state { CALC=0, SHIFT=1 };
 typedef enum world_state world_state;
 
 struct world {
-    size_t xlim;
-    size_t ylim;
+    uint32_t xlim;
+    uint32_t ylim;
     size_t cell_count;
     size_t data_size;
-    unsigned long generation;
+    uint32_t generation;
     world_state state;
     world_store *data;
     world_store *temp_calc;
@@ -54,6 +57,7 @@ typedef void (*iter_world_func_type) (world_cell_pos *wcp);
 world* init_world(size_t xlim, size_t ylim);
 void destroy_world(world *w);
 void print_world(world *w);
+char *serialize_world(world *w, size_t *len);
 void iter_world(world *w, iter_world_func_type itf);
 void invert_cell(world_cell_pos *p);
 
