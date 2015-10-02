@@ -8,6 +8,7 @@
 #include "serialization.h"
 
 #define PROGRAM_NAME "YALS2"
+#define MINSIZE 17
 
 #define WORLD_STORE_TYPE uint32_t
 #define BITS_PER_CELL 2
@@ -54,12 +55,13 @@ typedef void (*iter_world_func_type) (world_cell_pos *wcp);
 
 /*** FUNCTIONS ***/
 
-world* init_world(size_t xlim, size_t ylim);
+world *init_world(uint32_t xlim, uint32_t ylim);
 void destroy_world(world *w);
 void print_world(world *w);
-char *serialize_world(world *w, size_t *len);
 void iter_world(world *w, iter_world_func_type itf);
 void invert_cell(world_cell_pos *p);
+world *deserialize_world(char *data, size_t len);
+char *serialize_world(world *w, size_t *len);
 
 void world_half_step(world *w);
 void world_step(world *w);

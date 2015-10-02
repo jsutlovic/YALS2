@@ -21,7 +21,7 @@ static const char BIT_COUNTS[BIT_COUNT_LEN] = {
     2,   2,   3,   3,   2,   2,   3,   3
 };
 
-world* init_world(size_t xlim, size_t ylim) {
+world* init_world(uint32_t xlim, uint32_t ylim) {
     world *w = malloc(sizeof(world));
     w->xlim = xlim;
     w->ylim = ylim;
@@ -103,6 +103,55 @@ void print_world(world *w) {
     iter_world(w, _print_world_it);
 }
 
+/*
+ * Byte stream into world
+ *   - Check magic number
+ *   - Read xlim, ylim
+ *   - Read state
+ *   - Read generation
+ *   - Read all world data
+ */
+world *deserialize_world(char *data, size_t len) {
+    if (len < MINSIZE) {
+        puts("INVALID FILE SIZE!");
+        return NULL;
+    }
+
+    size_t offset = 0;
+
+    uint16_t magic = _dser_uint16(data, offset);
+    if (magic != MAGIC) {
+        printf("%04x\n", magic);
+        puts("INVALID FILE!");
+        return NULL;
+    }
+    offset += sizeof(magic);
+
+    uint32_t xlim, ylim, generation;
+    uint16_t state;
+
+    xlim = _dser_uint32(data, offset);
+    offset += sizeof(uint32_t);
+    ylim = _dser_uint32(data, offset);
+    offset += sizeof(uint32_t);
+
+    generation = _dser_uint32(data, offset);
+    offset += sizeof(uint32_t);
+
+    state = _dser_uint16(data, offset);
+    offset += sizeof(uint16_t);
+
+    world *w = init_world(xlim, ylim);
+    w->generation = generation;
+    w->state = state;
+
+    for (int i = 0; offset < len; ++i) {
+        w->data[i] = _dser_uint32(data, offset);
+        offset += sizeof(world_store);
+    }
+
+    return w;
+}
 
 /*
  * World into byte stream
