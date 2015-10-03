@@ -170,7 +170,8 @@ typedef struct game game;
 
 /*** FUNCTIONS ***/
 
-game* init_game(size_t xlim, size_t ylim);
+game *init_game(size_t xlim, size_t ylim);
+game *init_game_from_world(world *w);
 void setup_game(game *g, int width, int height);
 void start_game(game *g);
 void destroy_game(game *g);

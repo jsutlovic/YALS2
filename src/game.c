@@ -181,7 +181,7 @@ static void _init_gfx(game *g, int win_width, int win_height) {
     }
 }
 
-game* init_game(size_t xlim, size_t ylim) {
+game* init_game_from_world(world *w) {
     game *g = malloc(sizeof(game));
 
     // Defaults
@@ -189,6 +189,7 @@ game* init_game(size_t xlim, size_t ylim) {
     g->step = WHOLE;
     g->color_scheme = 0;
     g->vsync = 1;
+    g->o.enabled = 0;
     g->d.ortho = 1;
     g->d.padding = 1;
     g->d.wp = (Plane) {{0, 0, -1}, {0, 0, 1}};
@@ -198,8 +199,13 @@ game* init_game(size_t xlim, size_t ylim) {
 
     g->d.trans_amount = 0.9;
 
-    g->w = init_world(xlim, ylim);
+    g->w = w;
     return g;
+}
+
+game* init_game(size_t xlim, size_t ylim) {
+    world *w = init_world(xlim, ylim);
+    return init_game_from_world(w);
 }
 
 static inline void _print_vec3(vec3 vec, const char *desc) {
