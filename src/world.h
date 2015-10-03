@@ -62,6 +62,8 @@ void iter_world(world *w, iter_world_func_type itf);
 void invert_cell(world_cell_pos *p);
 world *deserialize_world(char *data, size_t len);
 char *serialize_world(world *w, size_t *len);
+world *read_from_file(const char *filename);
+size_t write_to_file(const char *filename, world *w);
 
 void world_half_step(world *w);
 void world_step(world *w);

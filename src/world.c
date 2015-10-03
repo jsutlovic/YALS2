@@ -198,6 +198,60 @@ char *serialize_world(world *w, size_t *len) {
     return s_w;
 }
 
+world *read_from_file(const char *filename) {
+    FILE *fp;
+    char *world_ser;
+    size_t world_ser_size, read_size;
+
+    if (filename == NULL) {
+        return NULL;
+    }
+
+    fp = fopen(filename, "rb");
+    if (fp != NULL) {
+        fseek(fp, 0, SEEK_END);
+        world_ser_size = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+
+        world_ser = malloc(world_ser_size);
+
+        read_size = fread(world_ser, sizeof(char), world_ser_size, fp);
+        if (read_size < world_ser_size) {
+            free(world_ser);
+            return NULL;
+        }
+        fclose(fp);
+    } else {
+        return NULL;
+    }
+
+    world *w = deserialize_world(world_ser, world_ser_size);
+    free(world_ser);
+
+    return w;
+}
+
+size_t write_to_file(const char *filename, world *w) {
+    FILE *fp;
+    char *world_ser;
+    size_t world_ser_size, write_size = 0;
+
+    if (filename == NULL) {
+        return write_size;
+    }
+
+    world_ser = serialize_world(w, &world_ser_size);
+
+    fp = fopen(filename, "wb");
+    if (fp != NULL) {
+        write_size = fwrite(world_ser, sizeof(char), world_ser_size, fp);
+        fclose(fp);
+    }
+
+    free(world_ser);
+    return write_size;
+}
+
 static void _shift_next_state(world *w) {
     for (size_t i = 0; i < w->data_size; i++) {
         w->data[i] = (w->data[i] << 1) & CURR_CELL_MASK;
