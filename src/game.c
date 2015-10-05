@@ -981,7 +981,6 @@ void destroy_game(game *g) {
     _destroy_overlay(g);
     _destroy_world_display(g);
     free_data_path();
-    destroy_world(g->w);
     free(g);
 }
 
