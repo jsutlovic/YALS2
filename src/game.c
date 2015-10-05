@@ -2,7 +2,6 @@
 
 #define VERTS_PER_TRIANGLE 6
 #define MULTISAMPLE 0
-#define PADDING 1
 
 #define GET_COL(idx) &COLOR_SCHEMES[g->color_scheme][idx]
 
@@ -858,6 +857,12 @@ static inline void _handle_event(game *g, SDL_Event e) {
             // Reset camera
             case(SDLK_u):
                 _reset_camera(g);
+                break;
+            // Toggle padding
+            case(SDLK_p):
+                g->d.padding = !g->d.padding;
+                _world_vertices(g);
+                _setup_world(g);
                 break;
         }
     } else if (e.type == SDL_KEYDOWN) {
