@@ -76,21 +76,21 @@ In graphical mode, these mouse actions are available:
 
 #### Keyboard keys
 In graphical mode, these keys are available:
-- Q, Esc: Quits the game, saving the world if filename was provided
-- 0-9: Fill with fill type. See CLI options for reference.
-- Tab: Show the overlay (basic information)
-- V: Toggle vsync
-- N: Iterates the world while pressed
-- M: Iterate world by a single half-step
-- Space: Toggles iterating the world
-- H: Toggles half/full step mode. Half step shows the intermediate step
+- **Q, Esc:** Quits the game, saving the world if filename was provided
+- **0-9:** Fill with fill type. See CLI options for reference.
+- **Tab:** Show the overlay (basic information)
+- **V:** Toggle vsync
+- **N:** Iterates the world while pressed
+- **M:** Iterate world by a single half-step
+- **Space:** Toggles iterating the world
+- **H:** Toggles half/full step mode. Half step shows the intermediate step
   between each full world iteration.
-- C: Rotate through available color schemes
-- Shift+C: Reverse rotate through color schemes
-- O: Toggle orthographic vs perspective camera
-- U: Reset camera
-- P: Toggle cell padding (default on)
-- W,A,S,D,arrow keys: Move camera position relative to world field
+- **C:** Rotate through available color schemes
+- **Shift+C:** Reverse rotate through color schemes
+- **O:** Toggle orthographic vs perspective camera
+- **U:** Reset camera
+- **P:** Toggle cell padding (default on)
+- **W,A,S,D,arrow keys:** Move camera position relative to world field
 
 #### Notes
 Currently graphical mode is limited to a 1280x720 pixel window.
