@@ -153,6 +153,19 @@ world *deserialize_world(char *data, size_t len) {
     return w;
 }
 
+world *deserialize_world_b64(char *enc_data, size_t enc_len) {
+    size_t dec_len;
+    char *dec_data = b64_dec(enc_data, enc_len, &dec_len);
+
+    if (dec_data == NULL) {
+        return NULL;
+    }
+
+    world *w = deserialize_world(dec_data, dec_len);
+    free(dec_data);
+    return w;
+}
+
 /*
  * World into byte stream
  *   - begin stream magic number
@@ -161,7 +174,7 @@ world *deserialize_world(char *data, size_t len) {
  *   - state
  *   - world_data
  */
-char *serialize_world(world *w, size_t *len) {
+char *serialize_world(world *w, size_t *ser_len) {
     size_t out_size =
         sizeof(MAGIC) +
         sizeof(uint32_t) +
@@ -193,9 +206,17 @@ char *serialize_world(world *w, size_t *len) {
         offset += sizeof(uint32_t);
     }
 
-    *len = out_size;
+    *ser_len = out_size;
 
     return s_w;
+}
+
+char *serialize_world_b64(world *w, size_t *enc_len) {
+    size_t ser_len;
+    char *world_data = serialize_world(w, &ser_len);
+    char *enc_world_data = b64_enc(world_data, ser_len, enc_len);
+    free(world_data);
+    return enc_world_data;
 }
 
 world *read_from_file(const char *filename) {

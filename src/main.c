@@ -132,10 +132,8 @@ int main(int argc, char **argv) {
             setup_game(g, 1280, 720);
             start_game(g);
 
-            if (fopt != NULL) {
-                write_to_file(fopt, g->w);
-            }
-
+            // If the world has changed since the game started
+            w = g->w;
             destroy_game(g);
         }
 

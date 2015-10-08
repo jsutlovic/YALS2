@@ -822,8 +822,32 @@ static inline void _handle_event(game *g, SDL_Event e) {
 
             // Toggle vsync
             case(SDLK_v):
-                g->vsync = !g->vsync;
-                SDL_GL_SetSwapInterval(g->vsync);
+                if (e.key.keysym.mod & (KMOD_CTRL|KMOD_CAPS)) {
+                    char *clip_text = SDL_GetClipboardText();
+                    size_t clip_len = SDL_strlen(clip_text);
+                    for (; clip_len > 0; clip_len--) {
+                        if (clip_text[clip_len-1] == '\n') {
+                            continue;
+                        }
+                        break;
+                    }
+                    world *dec_w = deserialize_world_b64(clip_text, clip_len);
+                    if (dec_w != NULL) {
+                        printf("Decoded world! %ux%u\n", dec_w->xlim, dec_w->ylim);
+                        free(g->w);
+                        g->w = dec_w;
+                        _init_world_display(g);
+                        _world_vertices(g);
+                        _setup_world(g);
+                        _reset_camera(g);
+                        _setup_camera(g);
+                        _update_camera(g);
+                    }
+                    SDL_free(clip_text);
+                } else {
+                    g->vsync = !g->vsync;
+                    SDL_GL_SetSwapInterval(g->vsync);
+                }
                 break;
 
             // End running
@@ -843,6 +867,12 @@ static inline void _handle_event(game *g, SDL_Event e) {
             case(SDLK_c):
                 if (e.key.keysym.mod & KMOD_SHIFT) {
                     _update_colors(g, g->color_scheme - 1);
+                } else if (e.key.keysym.mod & (KMOD_CTRL|KMOD_CAPS)) {
+                    char *enc_world = serialize_world_b64(g->w, NULL);
+                    if (SDL_SetClipboardText(enc_world) != 0) {
+                        printf("SDL_Error: %s\n", SDL_GetError());
+                    }
+                    free(enc_world);
                 } else {
                     _update_colors(g, g->color_scheme + 1);
                 }

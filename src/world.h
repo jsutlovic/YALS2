@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
+#include "base64.h"
 #include "serialization.h"
 
 #define PROGRAM_NAME "YALS2"
@@ -61,7 +62,9 @@ void print_world(world *w);
 void iter_world(world *w, iter_world_func_type itf);
 void invert_cell(world_cell_pos *p);
 world *deserialize_world(char *data, size_t len);
+world *deserialize_world_b64(char *enc_data, size_t enc_len);
 char *serialize_world(world *w, size_t *len);
+char *serialize_world_b64(world *w, size_t *enc_len);
 world *read_from_file(const char *filename);
 size_t write_to_file(const char *filename, world *w);
 
