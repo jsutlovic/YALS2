@@ -3,6 +3,7 @@
 import struct
 import sys
 import getopt
+from base64 import b64encode, b64decode
 
 
 class WorldConverter:
@@ -13,9 +14,13 @@ class WorldConverter:
 
 Usage: {0} -b from.wor to.txt
        {0} -t from.txt to.wor
+       {0} -e from.wor to.w64
+       {0} -r from.w64 to.wor
 
        -t: convert from text world to binary world
        -b: convert from binary world to text world
+       -e: convert from binary world to base64-encoded world
+       -r: convert from base64-encoded world to binary world
 """
 
     def __init__(self):
@@ -62,9 +67,12 @@ Usage: {0} -b from.wor to.txt
         return w
 
     @classmethod
-    def from_bin_file(cls, filename):
+    def from_bin_file(cls, filename, encoded=False):
         try:
-            return cls.from_bin_str(open(filename, 'rb').read())
+            data = open(filename, 'rb').read()
+            if encoded:
+                data = b64decode(data)
+            return cls.from_bin_str(data)
         except IOError as e:
             sys.stdout.write("{}\n".format(e))
             sys.exit(1)
@@ -130,9 +138,12 @@ Usage: {0} -b from.wor to.txt
 
         return bin_str
 
-    def to_bin_file(self, filename):
+    def to_bin_file(self, filename, encoded=False):
         f = open(filename, 'wb')
-        f.write(self.to_bin_str())
+        world_data = self.to_bin_str()
+        if encoded:
+            world_data = b64encode(world_data)
+        f.write(world_data)
         f.flush()
         f.close()
 
@@ -144,7 +155,7 @@ Usage: {0} -b from.wor to.txt
     @classmethod
     def main(cls):
         try:
-            optlist, args = getopt.getopt(sys.argv[1:], 'b:t:')
+            optlist, args = getopt.getopt(sys.argv[1:], 'b:t:e:r:')
         except getopt.GetoptError as e:
             sys.stderr.write("{}\n\n".format(e))
             return cls.usage()
@@ -160,6 +171,12 @@ Usage: {0} -b from.wor to.txt
             w.to_text_file(out_file)
         elif opt == '-t':
             w = cls.from_text_file(in_file)
+            w.to_bin_file(out_file)
+        elif opt == '-e':
+            w = cls.from_bin_file(in_file)
+            w.to_bin_file(out_file, encoded=True)
+        elif opt == '-r':
+            w = cls.from_bin_file(in_file, encoded=True)
             w.to_bin_file(out_file)
 
 
