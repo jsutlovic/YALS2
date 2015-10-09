@@ -4,6 +4,7 @@ const char *b64trans = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123
 
 /*
  * Get the index value of a character in the Base-64 translation table
+ * returns -1 on error (invalid lookup)
  */
 static int _char_ind(const char l) {
     if (l >= 'A' && l <= 'Z') {
@@ -48,22 +49,29 @@ void _b64seg_enc(const char *seg, char *b64seg, size_t to_end) {
 
 /*
  * Decode a segment of 4 Base64-encoded chars into a segment of 3 chars
+ * returns -1 if a segment could not be decoded
  */
-void _b64seg_dec(const char *b64, char *plain_seg) {
+int _b64seg_dec(const char *b64, char *plain_seg) {
     uint32_t seg_temp = 0;
     uint32_t seg_mask = 0xff; // 8 bits
+    int char_ind;
 
     for (int i = 0; i < SEG_OUT_LEN; i++) {
         if (b64[i] == '=') {
             seg_temp <<= 6 * (SEG_OUT_LEN - i);
             break;
         }
-        seg_temp = (seg_temp << 6) | ((uint8_t) _char_ind(b64[i]) & 0x3f);
+        char_ind = _char_ind(b64[i]);
+        if (char_ind < 0) {
+            return char_ind;
+        }
+        seg_temp = (seg_temp << 6) | ((uint8_t) char_ind & 0x3f);
     }
 
     for (int i = SEG_IN_LEN-1, j=0; i >= 0; i--, j++) {
         plain_seg[j] = (seg_temp >> 8*i) & seg_mask;
     }
+    return 0;
 }
 
 /*
@@ -95,7 +103,8 @@ char *b64_enc(const char *bytes, size_t in_len, size_t *out_len) {
  * b64_bytes: The encoded char array to decode (must be padded)
  * in_len: The length of the characters to decode (must be divisible by 4)
  * out_len: Will be populated with the length of the decoded string
- * returns: Decoded char string (with a terminating \0)
+ * returns: Decoded char string (with a terminating \0) or NULL if decoding
+ *          fails
  */
 char *b64_dec(const char *b64_bytes, size_t in_len, size_t *out_len) {
     if (in_len % 4 != 0) {
@@ -112,9 +121,16 @@ char *b64_dec(const char *b64_bytes, size_t in_len, size_t *out_len) {
     }
 
     char *plain = calloc(plain_len + 1, sizeof(char));
+    int dec_error;
 
     for (size_t i = 0, j = 0; j < plain_len; i+=4, j+=3) {
-        _b64seg_dec(&b64_bytes[i], &plain[j]);
+        dec_error = _b64seg_dec(&b64_bytes[i], &plain[j]);
+        if (dec_error != 0) {
+            if (out_len != NULL) {
+                *out_len = 0;
+            }
+            return NULL;
+        }
     }
 
     if (out_len != NULL) {
