@@ -180,6 +180,10 @@ static void _init_gfx(game *g, int win_width, int win_height) {
     }
 }
 
+static void _set_filename(game *g, const char *filename) {
+    g->filename = filename;
+}
+
 game* init_game_from_world(world *w) {
     game *g = malloc(sizeof(game));
 
@@ -469,8 +473,9 @@ static void _destroy_world_display(game *g) {
     free(g->d.vertices);
 }
 
-void setup_game(game *g, int win_width, int win_height) {
+void setup_game(game *g, int win_width, int win_height, const char *filename) {
     _init_gfx(g, win_width, win_height);
+    _set_filename(g, filename);
     _init_overlay(g);
     _init_world_display(g);
 }
@@ -868,7 +873,9 @@ static inline void _handle_event(game *g, SDL_Event e) {
                 if (e.key.keysym.mod & KMOD_SHIFT) {
                     _update_colors(g, g->color_scheme - 1);
                 } else if (e.key.keysym.mod & (KMOD_CTRL|KMOD_CAPS)) {
-                    char *enc_world = serialize_world_b64(g->w, NULL);
+                    size_t ser_size;
+                    char *enc_world = serialize_world_b64(g->w, &ser_size);
+                    printf("Copying to clipboard: %lu bytes\n", ser_size);
                     if (SDL_SetClipboardText(enc_world) != 0) {
                         printf("SDL_Error: %s\n", SDL_GetError());
                     }
@@ -893,6 +900,13 @@ static inline void _handle_event(game *g, SDL_Event e) {
                 g->d.padding = !g->d.padding;
                 _world_vertices(g);
                 _setup_world(g);
+                break;
+            // Save file
+            case(SDLK_x):
+                if (g->filename != NULL) {
+                    printf("Saving to file: %s\n", g->filename);
+                    write_to_file(g->filename, g->w, BASE64);
+                }
                 break;
         }
     } else if (e.type == SDL_KEYDOWN) {

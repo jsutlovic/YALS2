@@ -219,7 +219,7 @@ char *serialize_world_b64(world *w, size_t *enc_len) {
     return enc_world_data;
 }
 
-world *read_from_file(const char *filename) {
+world *read_from_file(const char *filename, world_file_type enc) {
     FILE *fp;
     char *world_ser;
     size_t world_ser_size, read_size;
@@ -246,13 +246,22 @@ world *read_from_file(const char *filename) {
         return NULL;
     }
 
+    if (enc == AUTO || enc == BASE64) {
+        size_t dec_size;
+        char *dec_data = b64_dec(world_ser, world_ser_size, &dec_size);
+        if (dec_data != NULL) {
+            free(world_ser);
+            world_ser = dec_data;
+            world_ser_size = dec_size;
+        }
+    }
     world *w = deserialize_world(world_ser, world_ser_size);
     free(world_ser);
 
     return w;
 }
 
-size_t write_to_file(const char *filename, world *w) {
+size_t write_to_file(const char *filename, world *w, world_file_type enc) {
     FILE *fp;
     char *world_ser;
     size_t world_ser_size, write_size = 0;
@@ -262,6 +271,13 @@ size_t write_to_file(const char *filename, world *w) {
     }
 
     world_ser = serialize_world(w, &world_ser_size);
+    if (enc == AUTO || enc == BASE64) {
+        size_t size;
+        char *world_b64 = b64_enc(world_ser, world_ser_size, &size);
+        free(world_ser);
+        world_ser = world_b64;
+        world_ser_size = size;
+    }
 
     fp = fopen(filename, "wb");
     if (fp != NULL) {

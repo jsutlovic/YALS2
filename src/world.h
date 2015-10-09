@@ -29,6 +29,9 @@
 
 typedef WORLD_STORE_TYPE world_store;
 
+enum world_file_type { AUTO=-1, RAW=0, BASE64=1 };
+typedef enum world_file_type world_file_type;
+
 enum world_state { CALC=0, SHIFT=1 };
 typedef enum world_state world_state;
 
@@ -65,8 +68,8 @@ world *deserialize_world(char *data, size_t len);
 world *deserialize_world_b64(char *enc_data, size_t enc_len);
 char *serialize_world(world *w, size_t *len);
 char *serialize_world_b64(world *w, size_t *enc_len);
-world *read_from_file(const char *filename);
-size_t write_to_file(const char *filename, world *w);
+world *read_from_file(const char *filename, world_file_type enc);
+size_t write_to_file(const char *filename, world *w, world_file_type enc);
 
 void world_half_step(world *w);
 void world_step(world *w);

@@ -99,6 +99,9 @@ char *b64_enc(const char *bytes, size_t in_len, size_t *out_len) {
  */
 char *b64_dec(const char *b64_bytes, size_t in_len, size_t *out_len) {
     if (in_len % 4 != 0) {
+        if (out_len != NULL) {
+            *out_len = 0;
+        }
         return NULL;
     }
     size_t plain_len = (size_t) (in_len / 4.0 + .75) * 3;

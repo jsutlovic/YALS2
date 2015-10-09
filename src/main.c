@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
         if (fopt != NULL) {
             printf("Opening and saving to file %s\n", fopt);
             // Attempt to read world and set xlim/ylim
-            w = read_from_file(fopt);
+            w = read_from_file(fopt, AUTO);
 
             if (w != NULL) {
                 xlim = w->xlim;
@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
             }
         } else {
             game *g = init_game_from_world(w);
-            setup_game(g, 1280, 720);
+            setup_game(g, 1280, 720, fopt);
             start_game(g);
 
             // If the world has changed since the game started

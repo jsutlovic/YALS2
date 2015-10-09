@@ -87,9 +87,12 @@ In graphical mode, these keys are available:
   between each full world iteration.
 - **C:** Rotate through available color schemes
 - **Shift+C:** Reverse rotate through color schemes
+- **Ctrl+C:** Copy world to clipboard (base64-encoded)
+- **Ctrl+V:** Paste world from clipboard (base64-encoded)
 - **O:** Toggle orthographic vs perspective camera
 - **U:** Reset camera
 - **P:** Toggle cell padding (default on)
+- **X:** Save world to filename provided by the `-f` parameter
 - **W,A,S,D,arrow keys:** Move camera position relative to world field
 
 #### Notes
