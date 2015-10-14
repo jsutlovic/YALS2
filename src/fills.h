@@ -26,7 +26,8 @@ enum fill_type {
     ODD_IN_WORLD,
     EVEN_ROW,
     ODD_ROW,
-    FULL
+    FULL,
+    RANDOM,
 };
 typedef enum fill_type fill_type;
 

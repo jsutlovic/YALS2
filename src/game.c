@@ -818,6 +818,11 @@ static inline void _handle_event(game *g, SDL_Event e) {
                 g->state = PAUSED;
                 break;
 
+            case(SDLK_r):
+                fill(g->w, RANDOM);
+                g->state = PAUSED;
+                break;
+
             // Quit
             case(SDLK_ESCAPE):
             case(SDLK_q): g->state = ENDED; break;

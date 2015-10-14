@@ -40,6 +40,10 @@ static void _fill_full(world_cell_pos *wcp) {
     *(wcp->cell_val) = 0x2;
 }
 
+static void _fill_rand(world_cell_pos *wcp) {
+    *(wcp->cell_val) = rand() & 2;
+}
+
 void fill(world *w, fill_type fill) {
     iter_world_func_type f_it;
 
@@ -54,6 +58,7 @@ void fill(world *w, fill_type fill) {
         case(ODD_ROW): f_it = _fill_odd_row; break;
         case(TEST_CELL): f_it = _fill_test_cell; break;
         case(FULL): f_it = _fill_full; break;
+        case(RANDOM): f_it = _fill_rand; break;
         default: return;
     }
 

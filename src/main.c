@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <time.h>
 #include "world.h"
 #include "game.h"
 #include "fills.h"
@@ -74,6 +75,7 @@ int main(int argc, char **argv) {
 
     // Declare world
     world *w = NULL;
+    srand(time(NULL));
 
     if (pflag) {
         if (ilim <= 0) {
