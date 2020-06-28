@@ -1,0 +1,7 @@
+{
+    "cmake.configureSettings": {
+        "SDL2_PATH": "${workspaceFolder}\\vendor\\SDL2-2.0.12",
+        "SDL2_TTF_PATH": "${workspaceFolder}\\vendor\\SDL2_ttf-2.0.15",
+        "GLEW_LOCATION": "${workspaceFolder}\\vendor\\glew-1.13.0"
+    }
+}

@@ -8,16 +8,14 @@ visuals
 - Half-step visuals
 
 ### Requirements
-- CMake 2.8+
+- CMake 3.13+
 - SDL2, SDL2_ttf
 - OpenGL (3.3+ core profile), GLEW
 
 ### Setup
 ```bash
 ./build.sh Release
-cd build
-make
-make install
+cmake --build build --config Release
 ../bin/YALS2
 ```
 

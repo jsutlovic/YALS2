@@ -1,7 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+
+#ifdef __unix__
 #include <getopt.h>
+#else
+#include "win\getopt.h"
+#endif
+
 #include <time.h>
 #include "world.h"
 #include "game.h"

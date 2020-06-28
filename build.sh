@@ -7,6 +7,4 @@ popd > /dev/null
 rm -rf "$PROJECT_PATH/build" > /dev/null
 mkdir "$PROJECT_PATH/build"
 
-pushd "$PROJECT_PATH/build" > /dev/null
-cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=${1:-Debug} ../
-popd > /dev/null
+cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=${1:-Debug} -S "$PROJECT_PATH" -B "$PROJECT_PATH/build"

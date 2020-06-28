@@ -3,8 +3,17 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#ifdef __unix__
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#else
+#include <SDL.h>
+#include <SDL_ttf.h>
+#endif
+
+#ifndef __unix__
+#define GLEW_STATIC
+#endif
 #include <GL/glew.h>
 
 #include "fsutil.h"

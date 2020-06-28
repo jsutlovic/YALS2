@@ -1,6 +1,10 @@
 #include "res_path.h"
 
+#ifdef __unix__
 const char PATH_SEP = '/';
+#else
+const char PATH_SEP = '\\';
+#endif
 static char* data_path = NULL;
 static int data_path_len;
 
@@ -22,6 +26,8 @@ char* get_res_path(const char *sub_dir) {
             return NULL;
         }
 
+        // Only do replacement on non-Windows
+        #if __unix__
         // This is bad, but we don't have rindex for substrings
         char *replace = NULL;
         char *match = data_path;
@@ -42,6 +48,7 @@ char* get_res_path(const char *sub_dir) {
         }
 
         SDL_memcpy(replace, "res", 3);
+        #endif
     }
 
     size_t sub_dir_len = SDL_strlen(sub_dir);
@@ -50,8 +57,8 @@ char* get_res_path(const char *sub_dir) {
     SDL_strlcpy(new_dir, data_path, new_dir_len);
     SDL_strlcpy(&new_dir[data_path_len], sub_dir, sub_dir_len + 1);
 
-    if (new_dir[data_path_len + sub_dir_len - 1] != '/') {
-        SDL_strlcpy(&new_dir[data_path_len + sub_dir_len], "/", 2);
+    if (new_dir[data_path_len + sub_dir_len - 1] != PATH_SEP) {
+        SDL_strlcpy(&new_dir[data_path_len + sub_dir_len], PATH_SEP, 2);
     }
 
     return new_dir;

@@ -68,6 +68,11 @@ static void _sdl_init(game *g, int win_width, int win_height) {
         exit(EXIT_FAILURE);
     }
 
+	if (!GLEW_VERSION_3_3) {
+		puts("Need at least OpenGL 3.3");
+		exit(EXIT_FAILURE);
+	}
+
     g->win_w = win_width;
     g->win_h = win_height;
     g->aspect = (float) win_width / (float) win_height;
@@ -127,10 +132,11 @@ static GLuint _shader_init(const char *vs_path, const char *fs_path) {
         GLint infoLogLength;
         glGetProgramiv(shader_program, GL_INFO_LOG_LENGTH, &infoLogLength);
 
-        GLchar strInfoLog[infoLogLength];
+        GLchar *strInfoLog = malloc(infoLogLength);
         glGetProgramInfoLog(shader_program, infoLogLength, NULL, strInfoLog);
 
         printf("\nGLSL error: %s", strInfoLog);
+        free(strInfoLog);
         return -1;
     } else {
         printf("Shader program linked: %d\n", shader_program);
@@ -161,11 +167,11 @@ static void _init_gfx(game *g, int win_width, int win_height) {
     g->world_shader = _shader_init(w_vs_path, w_fs_path);
     g->overlay_shader = _shader_init(o_vs_path, o_fs_path);
 
-    free(w_vs_path);
-    free(w_fs_path);
-    free(o_vs_path);
-    free(o_fs_path);
-    free(res_path);
+    SDL_free(w_vs_path);
+    SDL_free(w_fs_path);
+    SDL_free(o_vs_path);
+    SDL_free(o_fs_path);
+    SDL_free(res_path);
 
     if (g->world_shader == -1) {
         puts("Error creating world shader!");
@@ -242,7 +248,7 @@ static void _overlay_draw_text(overlay *o, char *text, int centered, int line, s
     }
 
     SDL_BlitSurface(temp_surf, NULL, o->bg, &text_rect);
-    free(temp_surf);
+    SDL_free(temp_surf);
 }
 
 static void _overlay_static_text(game *g) {
@@ -325,7 +331,7 @@ static void _render_overlay_live_text(overlay *o, surf_coord *text_coord) {
             o->tex_type,
             o->font_surf->pixels
             );
-    free(temp_font_surf);
+    SDL_free(temp_font_surf);
 }
 
 static void _init_overlay(game *g) {
@@ -410,8 +416,8 @@ static void _init_overlay(game *g) {
 
     o->font = TTF_OpenFont(font_path, 14);
 
-    free(res_path);
-    free(font_path);
+    SDL_free(res_path);
+    SDL_free(font_path);
 
     o->font_text = calloc(o->update_text_max+1, sizeof(char));
 
@@ -456,10 +462,10 @@ static void _init_overlay(game *g) {
 
 static void _destroy_overlay(game *g) {
     free(g->o.mvp);
-    free(g->o.bg);
-    free(g->o.font_surf);
-    free(g->o.font);
-    free(g->o.font_text);
+    SDL_free(g->o.bg);
+    SDL_free(g->o.font_surf);
+    SDL_free(g->o.font);
+    SDL_free(g->o.font_text);
 }
 
 static void _init_world_display(game *g) {
@@ -470,7 +476,7 @@ static void _init_world_display(game *g) {
 }
 
 static void _destroy_world_display(game *g) {
-    free(g->d.vertices);
+    SDL_free(g->d.vertices);
 }
 
 void setup_game(game *g, int win_width, int win_height, const char *filename) {
